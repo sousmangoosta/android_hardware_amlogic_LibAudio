@@ -66,6 +66,11 @@ static int AML_DCA_Estimate_Frame_size( unsigned char *buf,int size,int *syncpos
 				{
                    frame_size=i32Index-first_sync_pos;
                    ALOGI("FrameSize detect: %d/bytes",frame_size);
+                   if (frame_size < 95){
+                       first_sync_pos = frame_size;
+                       continue;
+                   }
+                   
                    break;
                 }
             }
