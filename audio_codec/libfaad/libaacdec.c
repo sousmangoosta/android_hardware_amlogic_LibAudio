@@ -436,6 +436,11 @@ int audio_dec_decode(
             goto exit;
         }
     }
+    if (hDecoder->adif_header_present) {
+        if (dec_bufsize < (get_frame_size(gFaadCxt) + FRAME_SIZE_MARGIN)/*AAC_INPUTBUF_SIZE/2*/) {
+            goto exit;
+        }
+    }
     if (hDecoder->latm_header_present) {
         int nSeekNum = AACFindLATMSyncWord(dec_buf, dec_bufsize);
         if (nSeekNum == (dec_bufsize - 2)) {

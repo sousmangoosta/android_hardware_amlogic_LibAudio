@@ -85,7 +85,7 @@ static void gain_control_data(bitfile *ld, ic_stream *ics);
 #endif
 static uint8_t spectral_data(NeAACDecStruct *hDecoder, ic_stream *ics, bitfile *ld,
                              int16_t *spectral_data);
-static uint16_t extension_payload(bitfile *ld, drc_info *drc, uint16_t count);
+static uint16_t extension_payload(bitfile *ld, drc_info *drc, uint16_t count,NeAACDecStruct *hDecoder);
 static uint8_t pulse_data(ic_stream *ics, pulse_info *pul, bitfile *ld);
 static void tns_data(ic_stream *ics, tns_info *tns, bitfile *ld);
 #ifdef LTP_DEC
@@ -1075,7 +1075,7 @@ static uint8_t fill_element(NeAACDecStruct *hDecoder, bitfile *ld, drc_info *drc
 #endif
 #ifndef DRM
             while (count > 0) {
-                count -= extension_payload(ld, drc, count);
+                count -= extension_payload(ld, drc, count,hDecoder);
             }
 #else
             return 30;
@@ -2074,7 +2074,7 @@ static uint8_t spectral_data(NeAACDecStruct *hDecoder, ic_stream *ics, bitfile *
 }
 
 /* Table 4.4.30 */
-static uint16_t extension_payload(bitfile *ld, drc_info *drc, uint16_t count)
+static uint16_t extension_payload(bitfile *ld, drc_info *drc, uint16_t count, NeAACDecStruct *hDecoder)
 {
     uint16_t i, n, dataElementLength;
     uint8_t dataElementLengthPart;
@@ -2082,11 +2082,12 @@ static uint16_t extension_payload(bitfile *ld, drc_info *drc, uint16_t count)
 
     uint8_t extension_type = (uint8_t)faad_getbits(ld, 4
                              DEBUGVAR(1, 87, "extension_payload(): extension_type"));
-
     switch (extension_type) {
     case EXT_DYNAMIC_RANGE:
         drc->present = 1;
         n = dynamic_range_info(ld, drc);
+        if (hDecoder->object_type == LC)
+            drc->present= 0;
         return n;
     case EXT_FILL_DATA:
         /* fill_nibble = */
