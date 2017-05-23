@@ -658,7 +658,9 @@ static int audio_codec_init(aml_audio_dec_t *audec)
         adec_print("====in buffer  init err \n");
         goto err3;
     }
-
+    if (audec->format == ACODEC_FMT_VORBIS) {
+       audec->avsync_threshold = 18000;
+    }
     //4-other init
     audec->adsp_ops.dsp_on = 1;
     audec->adsp_ops.dsp_read = armdec_stream_read;
