@@ -113,6 +113,8 @@ static int av_get_bits_per_sample(int codec_id)
     case AFORMAT_PCM_S16BE:
     case AFORMAT_PCM_S16LE:
         return 16;
+    case AFORMAT_PCM_S24LE:
+        return 24;
     default:
         return 0;
     }
@@ -728,6 +730,18 @@ static int pcm_decode_frame(pcm_read_ctl_t *pcm_read_ctl, unsigned char *buf, in
         }
         //dbuf.data_size = size*2;
         size *= 2;
+        break;
+    case AFORMAT_PCM_S24LE:
+        if (pPcm_priv_data->pcm_channels == 2) {
+            for (i = 0; i < n; i++) {
+                buf[i*2] = src[i*3+1];
+                buf[i*2+1] = src[i*3+2];
+            }
+            size = size * 2 / 3;
+        } else {
+            PRINTF("PCM_S24LE,channels :%d, not 2 channel,not support\n",pPcm_priv_data->pcm_channels);
+        }
+
         break;
 
     default:

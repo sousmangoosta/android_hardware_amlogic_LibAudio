@@ -290,6 +290,7 @@ struct adec_status {
 #define    ACODEC_FMT_MPEG1  26  //AFORMAT_MPEG-->mp3,AFORMAT_MPEG1-->mp1,AFROMAT_MPEG2-->mp2
 #define    ACODEC_FMT_MPEG2  27
 #define    ACODEC_FMT_WMAVOI 28
+#define    ACODEC_FMT_PCM_S24LE 30
 
 
 

@@ -51,6 +51,7 @@ audio_lib_t audio_lib_list[] = {
     {ACODEC_FMT_WIFIDISPLAY, "libpcm.so"},
     {ACODEC_FMT_ALAW, "libpcm.so"},
     {ACODEC_FMT_MULAW, "libpcm.so"},
+    {ACODEC_FMT_PCM_S24LE, "libpcm.so"},
     {ACODEC_FMT_ADPCM, "libadpcm.so"},
     {ACODEC_FMT_DRA, "libdra.so"},
     0

@@ -79,6 +79,7 @@ audio_type_t audio_type[] = {
     {ACODEC_FMT_WIFIDISPLAY, "pcm"},
     {ACODEC_FMT_ALAW, "pcm"},
     {ACODEC_FMT_MULAW, "pcm"},
+    {ACODEC_FMT_PCM_S24LE, "pcm"},
 
     {ACODEC_FMT_ADPCM, "adpcm"},
     {ACODEC_FMT_WMAVOI, "wmavoi"},
@@ -597,7 +598,6 @@ static int set_audio_decoder(aml_audio_dec_t *audec)
 
 
     audio_id = audec->format;
-
     num = ARRAY_SIZE(audio_type);
     for (i = 0; i < num; i++) {
         t = &audio_type[i];
