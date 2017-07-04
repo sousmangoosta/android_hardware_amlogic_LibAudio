@@ -69,12 +69,12 @@ int av_crc_init(AVCRC *ctx, int le, int bits, uint32_t poly, int ctx_size)
     for (i = 0; i < 256; i++) {
         if (le) {
             for (c = i, j = 0; j < 8; j++) {
-                c = (c >> 1) ^(poly & (-(c & 1)));
+                c = (c >> 1) ^ (poly & (-(c & 1)));
             }
             ctx[i] = c;
         } else {
             for (c = i << 24, j = 0; j < 8; j++) {
-                c = (c << 1) ^((poly << (32 - bits)) & (((int32_t)c) >> 31));
+                c = (c << 1) ^ ((poly << (32 - bits)) & (((int32_t)c) >> 31));
             }
             ctx[i] = bswap_32(c);
         }
@@ -125,7 +125,7 @@ uint32_t av_crc(const AVCRC *ctx, uint32_t crc, const uint8_t *buffer, size_t le
     //#if !CONFIG_SMALL
     if (!ctx[256]) {
         while (((intptr_t) buffer & 3) && buffer < end) {
-            crc = ctx[((uint8_t)crc) ^ *buffer++] ^(crc >> 8);
+            crc = ctx[((uint8_t)crc) ^ *buffer++] ^ (crc >> 8);
         }
 
         while (buffer < end - 3) {
@@ -139,7 +139,7 @@ uint32_t av_crc(const AVCRC *ctx, uint32_t crc, const uint8_t *buffer, size_t le
     }
     //#endif
     while (buffer < end) {
-        crc = ctx[((uint8_t)crc) ^ *buffer++] ^(crc >> 8);
+        crc = ctx[((uint8_t)crc) ^ *buffer++] ^ (crc >> 8);
     }
 
     return crc;

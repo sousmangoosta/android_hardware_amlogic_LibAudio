@@ -1,3 +1,22 @@
+/*
+ * Copyright (C) 2017 Amlogic, Inc. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+ * more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *
+ * Description:
+ */
 #include <stdio.h>
 #include <intreadwrite.h>
 #include "adec-armdec-mgt.h"
@@ -734,12 +753,12 @@ static int pcm_decode_frame(pcm_read_ctl_t *pcm_read_ctl, unsigned char *buf, in
     case AFORMAT_PCM_S24LE:
         if (pPcm_priv_data->pcm_channels == 2) {
             for (i = 0; i < n; i++) {
-                buf[i*2] = src[i*3+1];
-                buf[i*2+1] = src[i*3+2];
+                buf[i * 2] = src[i * 3 + 1];
+                buf[i * 2 + 1] = src[i * 3 + 2];
             }
             size = size * 2 / 3;
         } else {
-            PRINTF("PCM_S24LE,channels :%d, not 2 channel,not support\n",pPcm_priv_data->pcm_channels);
+            PRINTF("PCM_S24LE,channels :%d, not 2 channel,not support\n", pPcm_priv_data->pcm_channels);
         }
 
         break;

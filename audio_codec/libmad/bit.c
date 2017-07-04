@@ -206,10 +206,10 @@ unsigned short mad_bit_crc(struct mad_bitptr bitptr, unsigned int len,
 
         data = mad_bit_read(&bitptr, 32);
 
-        crc = (crc << 8) ^ crc_table[((crc >> 8) ^(data >> 24)) & 0xff];
-        crc = (crc << 8) ^ crc_table[((crc >> 8) ^(data >> 16)) & 0xff];
-        crc = (crc << 8) ^ crc_table[((crc >> 8) ^(data >>  8)) & 0xff];
-        crc = (crc << 8) ^ crc_table[((crc >> 8) ^(data >>  0)) & 0xff];
+        crc = (crc << 8) ^ crc_table[((crc >> 8) ^ (data >> 24)) & 0xff];
+        crc = (crc << 8) ^ crc_table[((crc >> 8) ^ (data >> 16)) & 0xff];
+        crc = (crc << 8) ^ crc_table[((crc >> 8) ^ (data >>  8)) & 0xff];
+        crc = (crc << 8) ^ crc_table[((crc >> 8) ^ (data >>  0)) & 0xff];
     }
 
     switch (len / 8) {
@@ -232,7 +232,7 @@ unsigned short mad_bit_crc(struct mad_bitptr bitptr, unsigned int len,
     while (len--) {
         register unsigned int msb;
 
-        msb = mad_bit_read(&bitptr, 1) ^(crc >> 15);
+        msb = mad_bit_read(&bitptr, 1) ^ (crc >> 15);
 
         crc <<= 1;
         if (msb & 1) {

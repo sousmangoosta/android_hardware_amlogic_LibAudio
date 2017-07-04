@@ -1,3 +1,22 @@
+/*
+ * Copyright (C) 2017 Amlogic, Inc. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+ * more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *
+ * Description:
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -20,7 +39,7 @@
 #define ASTREAM_ADDR "/sys/class/astream/astream-dev/uio0/maps/map0/addr"
 #define ASTREAM_SIZE "/sys/class/astream/astream-dev/uio0/maps/map0/size"
 #define ASTREAM_OFFSET "/sys/class/astream/astream-dev/uio0/maps/map0/offset"
-
+#define ADDR_OFFSET "/sys/class/astream/addr_offset"
 
 
 #define AIU_AIFIFO_CTRL                            0x1580
@@ -75,6 +94,7 @@ static int uio_init()
     int pagesize = getpagesize();
     int phys_start;
     int phys_offset;
+    int addr_offset;
 
 
     fd_uio = open(ASTREAM_DEV, O_RDWR);
@@ -85,9 +105,10 @@ static int uio_init()
     phys_start = get_num_infile(ASTREAM_ADDR);
     phys_size = get_num_infile(ASTREAM_SIZE);
     phys_offset = get_num_infile(ASTREAM_OFFSET);
+    addr_offset = get_num_infile(ADDR_OFFSET);
 
-    audio_codec_print("add=%08x, size=%08x, offset=%08x\n", phys_start, phys_size, phys_offset);
-
+    audio_codec_print("add=%08x, size=%08x, phy_offset=%08x, addr_offset=%d\n",
+                      phys_start, phys_size, phys_offset, addr_offset);
     phys_size = (phys_size + pagesize - 1) & (~(pagesize - 1));
     memmap = mmap(NULL, phys_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd_uio, 0 * pagesize);
 
@@ -96,8 +117,9 @@ static int uio_init()
         audio_codec_print("map /dev/uio0 failed\n");
         return -1;
     }
-    if (phys_offset == 0)
-        phys_offset = (AIU_AIFIFO_CTRL*4)&(pagesize-1);
+    if (phys_offset == 0) {
+        phys_offset = ((AIU_AIFIFO_CTRL + addr_offset) << 2) & (pagesize - 1);
+    }
     reg_base = memmap + phys_offset;
     return 0;
 }
