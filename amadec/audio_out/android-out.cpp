@@ -734,7 +734,7 @@ extern "C" int android_init_raw(struct aml_audio_dec* audec)
     else if(audec->format == ACODEC_FMT_EAC3)
         aformat = AUDIO_FORMAT_EAC3;
     else if(audec->format == ACODEC_FMT_TRUEHD)
-        aformat = AUDIO_FORMAT_TRUEHD;
+        aformat = AUDIO_FORMAT_DOLBY_TRUEHD;
 
     if(audec->format == ACODEC_FMT_TRUEHD){
         audec->codec_type=16;

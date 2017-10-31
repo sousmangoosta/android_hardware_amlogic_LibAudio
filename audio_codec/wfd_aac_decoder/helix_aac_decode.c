@@ -8,7 +8,7 @@
 #include <dlfcn.h>
 #include <sys/mman.h>
 #include <cutils/properties.h>
-
+#include <android/log.h>
 
 
 #include "aaccommon.h"

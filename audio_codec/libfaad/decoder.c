@@ -35,6 +35,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
+#include <android/log.h>
 
 #include "mp4.h"
 #include "syntax.h"
