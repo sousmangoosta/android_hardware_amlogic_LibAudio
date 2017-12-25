@@ -21,6 +21,10 @@ LOCAL_MODULE := libamadec_omx_api
 
 LOCAL_ARM_MODE := arm
 
+ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 26 && echo OK),OK)
+LOCAL_PROPRIETARY_MODULE := true
+endif
+
 LOCAL_SHARED_LIBRARIES += libutils libmedia libz libbinder libdl libcutils libc libstagefright \
                           libstagefright_omx libmedia_native liblog \
                           libstagefright_foundation

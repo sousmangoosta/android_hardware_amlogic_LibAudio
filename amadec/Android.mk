@@ -134,6 +134,10 @@ LOCAL_SRC_FILES := \
 
 LOCAL_MODULE := libamadec
 
+ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 26 && echo OK),OK)
+LOCAL_PROPRIETARY_MODULE := true
+endif
+
 LOCAL_ARM_MODE := arm
 ##################################################
 #$(shell cp $(LOCAL_PATH)/acodec_lib/*.so $(TARGET_OUT)/lib)
@@ -175,6 +179,10 @@ LOCAL_MODULE := libamadec_omx_api
 LOCAL_MODULE_TAGS := optional
 LOCAL_ARM_MODE := arm
 
+ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 26 && echo OK),OK)
+LOCAL_PROPRIETARY_MODULE := true
+endif
+
 LOCAL_SHARED_LIBRARIES += libutils libmedia libz libbinder libdl libcutils libc libstagefright \
                           libstagefright_omx liblog libamavutils libstagefright_foundation
 LOCAL_PRELINK_MODULE := false
@@ -210,6 +218,10 @@ LOCAL_SRC_FILES := \
 LOCAL_MODULE := libamadec_wfd_out
 LOCAL_MODULE_TAGS := optional
 LOCAL_ARM_MODE := arm
+
+ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 26 && echo OK),OK)
+LOCAL_PROPRIETARY_MODULE := true
+endif
 
 LOCAL_SHARED_LIBRARIES += libutils libtinyalsa  liblog libmedia libcutils libc \
          libmedia_helper libaudioclient libbinder libdl
@@ -257,7 +269,7 @@ define _add-audio-firmware-module
     LOCAL_SRC_FILES := $1
     LOCAL_MODULE_TAGS := optional
     LOCAL_MODULE_CLASS := ETC
-    LOCAL_MODULE_PATH := $$(TARGET_OUT_ETC)/firmware
+    LOCAL_MODULE_PATH := $(TARGET_OUT_VENDOR)/etc/firmware
     include $$(BUILD_PREBUILT)
 endef
 
