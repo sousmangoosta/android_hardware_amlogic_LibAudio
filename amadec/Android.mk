@@ -10,7 +10,7 @@ LOCAL_CFLAGS := \
 
 
 ifneq (0, $(shell expr $(PLATFORM_VERSION) \>= 5.0))
-ALSA_LIB_DIR=vendor/amlogic/external/alsa-lib/
+ALSA_LIB_DIR=$(BOARD_AML_VENDOR_PATH)/external/alsa-lib/
 else
 ALSA_LIB_DIR=external/alsa-lib/
 endif
