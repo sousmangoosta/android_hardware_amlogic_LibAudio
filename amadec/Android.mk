@@ -161,19 +161,20 @@ LOCAL_C_INCLUDES:= \
     $(LOCAL_PATH)/omx_audio/../include \
     $(AMAVUTILS_INCLUDE) \
     frameworks/native/include/media/openmax \
+    frameworks/native/libs/nativewindow/include/system \
     frameworks/av/include/media/stagefright \
     frameworks/native/include/utils
 
 LOCAL_SRC_FILES := \
-           /omx_audio/adec_omx.cpp \
-           /omx_audio/audio_mediasource.cpp \
-           /omx_audio/DDP_mediasource.cpp \
-           /omx_audio/ALAC_mediasource.cpp \
-           /omx_audio/MP3_mediasource.cpp \
-	   /omx_audio/ASF_mediasource.cpp  \
-	   /omx_audio/DTSHD_mediasource.cpp \
-	   /omx_audio/Vorbis_mediasource.cpp \
-	   /omx_audio/THD_mediasource.cpp
+    /omx_audio/adec_omx.cpp \
+    /omx_audio/audio_mediasource.cpp \
+    /omx_audio/DDP_mediasource.cpp \
+    /omx_audio/ALAC_mediasource.cpp \
+    /omx_audio/MP3_mediasource.cpp \
+    /omx_audio/ASF_mediasource.cpp  \
+    /omx_audio/DTSHD_mediasource.cpp \
+    /omx_audio/Vorbis_mediasource.cpp \
+    /omx_audio/THD_mediasource.cpp
 
 LOCAL_MODULE := libamadec_omx_api
 LOCAL_MODULE_TAGS := optional

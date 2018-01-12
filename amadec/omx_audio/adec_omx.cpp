@@ -104,9 +104,9 @@ AmlOMXCodec::AmlOMXCodec(int codec_type,void *read_buffer,int *exit,aml_audio_de
         metadata->setCString(kKeyMIMEType,mine_type);
         
         m_codec = SimpleDecodingSource::Create(
-                        m_OMXMediaSource,
+                        m_OMXMediaSource/*,
                         0,
-                        0); 
+                        0*/);
         
         if (m_codec != NULL)
         {   

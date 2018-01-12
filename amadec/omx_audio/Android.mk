@@ -10,12 +10,12 @@ LOCAL_C_INCLUDES:= \
     $(LOCAL_PATH)/../     \
     $(LOCAL_PATH)/../include \
     frameworks/native/include/media/openmax \
+    frameworks/native/libs/nativewindow/include/system \
     frameworks/av/include/media/stagefright \
     frameworks/native/include/utils
 
 LOCAL_SRC_FILES := \
-           adec_omx.cpp audio_mediasource.cpp
-	   #../adec_read.c
+    adec_omx.cpp audio_mediasource.cpp
 
 LOCAL_MODULE := libamadec_omx_api
 
