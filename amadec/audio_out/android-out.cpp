@@ -370,6 +370,10 @@ static void apply_audio_pregain(void *buf, int size, float gain) {
 }
 
 #define  RESAMPLE_THRESHOLD     (30 * TIME_UNIT90K / 1000)
+
+static int resample_down_count = 0;
+static int resample_up_count = 0;
+
 void audioCallback(int event, void* user, void *info)
 {
     int len, i;
@@ -519,14 +523,22 @@ void audioCallback(int event, void* user, void *info)
                         apts64 - pcrscr64, RESAMPLE_THRESHOLD, ((pcrscr64 - apts64) > (int64_t)(100 * TIME_UNIT90K / 1000)));
                         af_set_resample_type(RESAMPLE_TYPE_NONE);
                     } else if ((pcrscr64 - apts64) > (int64_t)RESAMPLE_THRESHOLD) {
-                        af_set_resample_type(RESAMPLE_TYPE_DOWN);
+						resample_down_count ++;
+						resample_up_count = 0;
+						if(resample_down_count > 5)
+							af_set_resample_type(RESAMPLE_TYPE_DOWN);
                         adec_print("down: #pcrmaster enable:%d, %lld, %lld, %lld,  --------\n", af_get_resample_enable_flag(),apts64,pcrscr64,pcrscr64-apts64);
                     } else if ((apts64 - pcrscr64) > (int64_t)RESAMPLE_THRESHOLD) {
-                        af_set_resample_type(RESAMPLE_TYPE_UP);
+						resample_up_count ++;
+						resample_down_count = 0;
+						if(resample_up_count > 5)
+							af_set_resample_type(RESAMPLE_TYPE_UP);
                         adec_print("up: #pcrmaster enable:%d, %lld, %lld, %lld, --------\n", af_get_resample_enable_flag(), apts64,pcrscr64,apts64-pcrscr64);
                     } else {
                         adec_print("none: #pcrmaster: %lld, %lld, %lld, %d,%d,--------\n",
                         apts64,pcrscr64,apts64-pcrscr64,RESAMPLE_THRESHOLD,((pcrscr64 - apts64) > (int64_t)(100*TIME_UNIT90K/1000)));
+						resample_up_count = 0;
+						resample_down_count = 0;
                         af_set_resample_type(RESAMPLE_TYPE_NONE);
                     }
                     audec->last_apts64 = apts64;
@@ -1405,6 +1417,7 @@ extern "C" unsigned long android_latency(struct aml_audio_dec* audec)
 #endif
     if (audec->use_get_out_posion && audec->aout_ops.get_out_position)
         return 0;
+#if 0
     if (track) {
         status_t s;
         int ret = -1;
@@ -1435,6 +1448,8 @@ extern "C" unsigned long android_latency(struct aml_audio_dec* audec)
             return delay_us/1000;
         }
     }
+#endif
+
     if (track) {
         latency = track->latency();
         return latency;
