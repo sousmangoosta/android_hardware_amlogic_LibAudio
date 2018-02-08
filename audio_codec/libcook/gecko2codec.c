@@ -605,7 +605,7 @@ static void Gecko2ClearBadFrame(Gecko2Info *gi, short *outbuf)
 
 }
 
-void ProduceDecodeInfo(HGecko2Decoder hGecko2Decoder, unsigned timestamp)
+void ProduceDecodeInfo(HGecko2Decoder hGecko2Decoder __unused, unsigned timestamp __unused)
 {
 #ifndef USE_C_DECODER
     Gecko2Info *gi = (Gecko2Info *)hGecko2Decoder;
@@ -640,7 +640,7 @@ void ProduceDecodeInfo(HGecko2Decoder hGecko2Decoder, unsigned timestamp)
 #endif
 }
 
-int GetDecodeInfo(HGecko2Decoder hGecko2Decoder)
+int GetDecodeInfo(HGecko2Decoder hGecko2Decoder __unused)
 {
 #ifndef USE_C_DECODER
     Gecko2Info *gi = (Gecko2Info *)hGecko2Decoder;

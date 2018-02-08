@@ -5,11 +5,13 @@
 #include <cutils/properties.h>
 #include "ASF_mediasource.h"
 #include "audio-dec.h"
+#include "AmMetaDataExt.h"
+
 extern "C" int read_buffer(unsigned char *buffer,int size);
 
-#define LOG_TAG "Asf_Medissource"
-#define ALOGI(...) __android_log_print(ANDROID_LOG_INFO,LOG_TAG,__VA_ARGS__)
-#define ALOGE(...) __android_log_print(ANDROID_LOG_ERROR,LOG_TAG,__VA_ARGS__)
+//#define LOG_TAG "Asf_Medissource"
+//#define ALOGI(...) __android_log_print(ANDROID_LOG_INFO,LOG_TAG,__VA_ARGS__)
+//#define ALOGE(...) __android_log_print(ANDROID_LOG_ERROR,LOG_TAG,__VA_ARGS__)
 
 
 namespace android {
@@ -128,11 +130,11 @@ sp<MetaData> Asf_MediaSource::getFormat() {
     return mMeta;
 }
 
-status_t Asf_MediaSource::start(MetaData *params)
+status_t Asf_MediaSource::start(MetaData *params __unused)
 {
     ALOGI("[%s] in line (%d) \n",__FUNCTION__,__LINE__);
     mGroup = new MediaBufferGroup;
-    mGroup->add_buffer(new MediaBuffer(block_align));
+    mGroup->add_buffer(MediaBufferBase::Create(block_align));
     mStarted = true;
     return OK;  
 }
@@ -146,11 +148,11 @@ status_t Asf_MediaSource::stop()
     return OK;
 }
 
-status_t Asf_MediaSource::read(MediaBuffer **out, const ReadOptions *options)
+status_t Asf_MediaSource::read(MediaBufferBase **out, const ReadOptions *options __unused)
 {
     *out = NULL;
-    int readedbytes = 0;
-    unsigned char header_buffer[5];
+    //int readedbytes = 0;
+    //unsigned char header_buffer[5];
     frame_size = 0;
 
     if (*pStop_ReadBuf_Flag==1){
@@ -158,7 +160,7 @@ status_t Asf_MediaSource::read(MediaBuffer **out, const ReadOptions *options)
          return ERROR_END_OF_STREAM;
     }
 
-    MediaBuffer *buffer;
+    MediaBufferBase *buffer;
     status_t err = mGroup->acquire_buffer(&buffer);
     if (err != OK) {
         return err;
@@ -172,7 +174,7 @@ status_t Asf_MediaSource::read(MediaBuffer **out, const ReadOptions *options)
     }
     
     buffer->set_range(0, block_align);
-    buffer->meta_data()->setInt64(kKeyTime, mCurrentTimeUs);
+    buffer->meta_data().setInt64(kKeyTime, mCurrentTimeUs);
     
     *out = buffer;
      return OK;

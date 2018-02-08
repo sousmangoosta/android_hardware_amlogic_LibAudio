@@ -86,7 +86,7 @@ static int read_data(char * out, buffer_stream_t *bs, int size)
         //printf("=====buffer empty \n");
         return 0;//buffer empty
     }
-    int len = MIN(bs->buf_level, size);
+    int len = (bs->buf_level>size)?size:bs->buf_level;
     if (bs->wr_ptr > bs->rd_ptr) {
         memcpy(out, bs->rd_ptr, len);
         bs->rd_ptr += len;
@@ -141,7 +141,8 @@ static int write_data(char *in, buffer_stream_t *bs, int size)
         return 0;//buffer full
     }
     //start write data
-    int len = MIN(bs->buf_length - bs->buf_level, size);
+    //int len = MIN(bs->buf_length - bs->buf_level, size);
+    int len = ((bs->buf_length - bs->buf_level) < size)?(bs->buf_length - bs->buf_level):size;
     if (bs->wr_ptr < bs->rd_ptr) {
         memcpy(bs->wr_ptr, in, len);
         bs->wr_ptr += len;

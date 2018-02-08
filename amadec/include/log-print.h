@@ -16,7 +16,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
-#define  LOG_TAG    "amadec"
+//#define  LOG_TAG    "amadec"
 #define adec_print(...) __android_log_print(ANDROID_LOG_INFO,LOG_TAG,__VA_ARGS__)
 #else
 #define adec_print(f,s...) fprintf(stderr,f,##s)

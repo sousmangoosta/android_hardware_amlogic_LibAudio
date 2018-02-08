@@ -924,7 +924,7 @@ HX_RESULT rm_parseri_unpack_logical_multirate_type_spec(rm_parser_internal* pInt
             for (i = 0; i < num_stream; i++) {
                 memcpy(&stream_num, pStreamNum, sizeof(UINT16));
                 stream_num = IS_BIG_ENDIAN(w) ? stream_num : BYTE_SWAP_UINT16(stream_num);
-                for (j = 0; j < pInt->ulNumMediaPropsHdrs; j++) {
+                for (j = 0; j < (int)pInt->ulNumMediaPropsHdrs; j++) {
                     if (pInt->pMediaPropsHdr[j].stream_num == stream_num) {
                         memcpy((char*)&start_offset, (char*)pOffset, sizeof(UINT32));
                         pInt->pMediaPropsHdr[j].start_offset = IS_BIG_ENDIAN(w) ? start_offset : BYTE_SWAP_UINT32(start_offset);
@@ -1942,7 +1942,7 @@ void rm_parseri_cleanup_all_data_headers(rm_parser_internal* pInt)
 
 UINT32 rm_parseri_count_set_stream_header_props(rm_parser_internal* pInt, UINT32 i,
         rm_stream_header* hdr,
-        rm_property* pProp, UINT32 ulNumProps)
+        rm_property* pProp, UINT32 ulNumProps __unused)
 {
     UINT32 ulRet = 0;
 
@@ -1961,8 +1961,8 @@ UINT32 rm_parseri_count_set_stream_header_props(rm_parser_internal* pInt, UINT32
         HXDOUBLE dPreData           = 0.0;
         UINT32   ulPreData          = 0;
         char*    pASMRuleBook       = HXNULL;
-        BYTE*    pBuf               = HXNULL;
-        UINT32   ulLen              = 0;
+        //BYTE*    pBuf               = HXNULL;
+        //UINT32   ulLen              = 0;
         BYTE     ucRuleToFlag[8];
         /* Set/count the "StreamNumber" property */
 
@@ -2545,7 +2545,7 @@ UINT32 rm_parseri_file_read(rm_parser_internal* pInt, UINT32 ulBytesToRead, UINT
 {
     UINT32 ulRet = 0;
     //    DataSrc_t *ds = pInt->pUserRead;
-    UINT8 err;
+    //UINT8 err;
 
     if (pInt && pInt->fpRead) {
         /* Make sure our read buffer is big enough */
@@ -2580,7 +2580,7 @@ UINT32 rm_parseri_file_read_buffer(rm_parser_internal* pInt, BYTE* pBuf, UINT32 
 {
     UINT32 ulRet = 0;
     //    DataSrc_t *ds = pInt->pUserRead;
-    UINT8 err;
+    //UINT8 err;
 
     if (pInt && pInt->fpRead) {
         //    if (ds&&ds->streaming_sem)
@@ -2832,10 +2832,10 @@ HX_RESULT rm_parseri_search_seek_tables(rm_parser_internal* pInt, INT32 lStreamN
     if (pInt && pulFoundTime && pulFoundOffset &&
         pInt->ulNumStreams && pInt->pStreamInfo) {
         /* Initialize local variables */
-        UINT32    ulMinTime   = 0xffffffff;
-        UINT32    ulMinOffset = 0xffffffff;
-        UINT32    i           = 0;
-        HX_RESULT status      = HXR_FAIL;
+        //UINT32    ulMinTime   = 0xffffffff;
+        //UINT32    ulMinOffset = 0xffffffff;
+        //UINT32    i           = 0;
+        //HX_RESULT status      = HXR_FAIL;
         struct rm_stream_info* pInfo = &pInt->pStreamInfo[lStreamNumber];
         /* Search the streams */
         {
@@ -2862,7 +2862,7 @@ HX_RESULT rm_parseri_search_seek_tables(rm_parser_internal* pInt, INT32 lStreamN
 }
 
 HX_RESULT rm_parseri_search_seek_table(struct rm_seek_table* pTable, UINT32 ulSeekTime, INT32 lDirection,
-                                       UINT32* pulFoundTime, UINT32* pulFoundOffset, UINT32 *pulFoundIndex)
+                                       UINT32* pulFoundTime, UINT32* pulFoundOffset, UINT32 *pulFoundIndex __unused)
 {
     HX_RESULT retVal = HXR_FAIL;
 

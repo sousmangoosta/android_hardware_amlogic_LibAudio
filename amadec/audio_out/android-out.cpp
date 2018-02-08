@@ -63,7 +63,7 @@ static int get_digitalraw_mode(void)
 void restore_system_samplerate(struct aml_audio_dec* audec)
 {
 #if defined(ANDROID_VERSION_JBMR2_UP)
-    unsigned int sr = 0;
+    //unsigned int sr = 0;
 #else
     int sr = 0;
 #endif 
@@ -78,6 +78,7 @@ void restore_system_samplerate(struct aml_audio_dec* audec)
 	audio_io_handle_t handle = -1;	
 //for mx, raw/pcm use the same audio hal
 #ifndef USE_ARM_AUDIO_DEC
+/*
 	handle = 	AudioSystem::getOutput(AUDIO_STREAM_MUSIC,
 	                            48000,
 	                            AUDIO_FORMAT_PCM_16_BIT,
@@ -88,6 +89,7 @@ void restore_system_samplerate(struct aml_audio_dec* audec)
 	                            AUDIO_OUTPUT_FLAG_PRIMARY
 #endif	                            
 	                            );
+	                            */
 		if(handle > 0){
 			char str[64];
 			memset(str,0,sizeof(str));
@@ -95,6 +97,7 @@ void restore_system_samplerate(struct aml_audio_dec* audec)
 			AudioSystem::setParameters(handle, String8(str));			
 		}		
 #else
+/*
 //for  M8, raw/pcm  output use different HAL, so only check the raw output device
 	handle = 	AudioSystem::getOutput(AUDIO_STREAM_MUSIC,
 	                            48000,
@@ -105,7 +108,7 @@ void restore_system_samplerate(struct aml_audio_dec* audec)
 #else	//JB...			
 	                            AUDIO_OUTPUT_FLAG_DIRECT
 #endif	                            
-	                            );
+	                            );*/
 		
 		if(handle > 0){
 			char str[64];
@@ -131,37 +134,39 @@ static int old_frame_count = 0;
 
 void restore_system_framesize()
 {
-	if(old_frame_count == 0){
-    	 adec_print("frame size can't be zero !\n");
-		 return;
-	}
-  	adec_print("restore system frame size\n");
-	int sr = 0;
-	audio_io_handle_t handle = -1;		
-	handle = 	AudioSystem::getOutput(AUDIO_STREAM_MUSIC,
-	                            48000,
-	                            AUDIO_FORMAT_PCM_16_BIT,
-	                            AUDIO_CHANNEL_OUT_STEREO,
+    if (old_frame_count == 0) {
+        adec_print("frame size can't be zero !\n");
+        return;
+    }
+    adec_print("restore system frame size\n");
+    //int sr = 0;
+    audio_io_handle_t handle = -1;
+    /*
+    handle = 	AudioSystem::getOutput(AUDIO_STREAM_MUSIC,
+                    48000,
+                    AUDIO_FORMAT_PCM_16_BIT,
+                    AUDIO_CHANNEL_OUT_STEREO,
 #if defined(_VERSION_ICS) 
-					AUDIO_POLICY_OUTPUT_FLAG_INDIRECT
+                    AUDIO_POLICY_OUTPUT_FLAG_INDIRECT
 #else	//JB...			
-	                            AUDIO_OUTPUT_FLAG_PRIMARY
+                    AUDIO_OUTPUT_FLAG_PRIMARY
 #endif	                            
-	                            );
-		if(handle > 0){
-			char str[64];
-            int ret;
-			memset(str,0,sizeof(str));
+                    );
+    */
+    if (handle > 0) {
+        char str[64];
+        int ret;
+        memset(str,0,sizeof(str));
 #if defined(ANDROID_VERSION_JBMR2_UP)
-			sprintf(str,"frame_count=%zd",old_frame_count);
-			ret = AudioSystem::setParameters(handle, String8(str));
-			adec_print("restore frame success: %zd\n", old_frame_count);
+        sprintf(str,"frame_count=%zd",old_frame_count);
+        ret = AudioSystem::setParameters(handle, String8(str));
+        adec_print("restore frame success: %zd\n", old_frame_count);
 #else
-			sprintf(str,"frame_count=%zd",old_frame_count);
-			ret = AudioSystem::setParameters(handle, String8(str));
-			adec_print("restore frame success: %zd\n", old_frame_count);
+        sprintf(str,"frame_count=%zd",old_frame_count);
+        ret = AudioSystem::setParameters(handle, String8(str));
+        adec_print("restore frame success: %zd\n", old_frame_count);
 #endif
-        }
+    }
 }		
 
 void reset_system_samplerate(struct aml_audio_dec* audec)
@@ -246,9 +251,10 @@ void reset_system_samplerate(struct aml_audio_dec* audec)
 		
 	{
 		adec_print("[%s %d]Change AudioSysFS to/%d\n",__FUNCTION__,__LINE__,Samplerate);
-		int sr = 0;
+		//int sr = 0;
 		if(/*sr*/48000 != Samplerate){
 #ifndef USE_ARM_AUDIO_DEC
+            /*
 			handle = 	AudioSystem::getOutput(AUDIO_STREAM_MUSIC,
 			                            48000,
 			                            AUDIO_FORMAT_PCM_16_BIT,
@@ -259,6 +265,7 @@ void reset_system_samplerate(struct aml_audio_dec* audec)
 			                            AUDIO_OUTPUT_FLAG_PRIMARY
 #endif	                            
 			                            );
+			                            */
 				if(handle > 0){
 					char str[64];
 					memset(str,0,sizeof(str));
@@ -266,6 +273,7 @@ void reset_system_samplerate(struct aml_audio_dec* audec)
 					AudioSystem::setParameters(handle, String8(str));			
 				}		
 #else
+/*
 		//for  M8, raw/pcm  output use different HAL, so only check the raw output device
 			handle = 	AudioSystem::getOutput(AUDIO_STREAM_MUSIC,
 			                            48000,
@@ -276,7 +284,7 @@ void reset_system_samplerate(struct aml_audio_dec* audec)
 #else	//JB...			
 			                            AUDIO_OUTPUT_FLAG_DIRECT
 #endif	                            
-			                            );
+			                            );*/
 				
 				if(handle > 0){
 					char str[64];
@@ -346,8 +354,6 @@ static int  pre_gain_enable=0;
 static void momo2_mode_mix(short*buf, int nsamps, int channels)
 {
     int i;
-    int step=4;//assume deffault pcm format: bitwidth/2bytes channels/2
-    short tmpL,tmpR;
     int tmpSum;
     short *p16tmp=(short*)buf;
     if(channels!=2)
@@ -365,21 +371,20 @@ static void momo2_mode_mix(short*buf, int nsamps, int channels)
 static void apply_audio_pregain(void *buf, int size, float gain) {
     int i;
     short *sample = (short*)buf;
-    for (i = 0; i < size/sizeof(short); i++)
+    for (i = 0; i < size/(int)sizeof(short); i++)
         sample[i] = gain*sample[i];
 }
 
 #define  RESAMPLE_THRESHOLD     (30 * TIME_UNIT90K / 1000)
 void audioCallback(int event, void* user, void *info)
 {
-    int len, i;
+    int i;
     unsigned last_checkin, last_checkout;
     unsigned diff, diff_avr;
     AudioTrack::Buffer *buffer = static_cast<AudioTrack::Buffer *>(info);
     aml_audio_dec_t *audec = static_cast<aml_audio_dec_t *>(user);
-    audio_out_operations_t *out_ops = &audec->aout_ops;
     dsp_operations_t *dsp_ops = &audec->adsp_ops;
-    unsigned long apts, pcrscr;
+    //unsigned long apts, pcrscr;
 	struct am_io_param am_io;
 
     if (event != AudioTrack::EVENT_MORE_DATA) {
@@ -428,9 +433,9 @@ void audioCallback(int event, void* user, void *info)
         adec_print("skip more data: last_checkin[%d]-last_checkout[%d]=%d, diff=%d\n", last_checkin/90, last_checkout/90, (last_checkin-last_checkout)/90, diff);
       }
       
-      if (diff_avr > /*220*/wfd_ds_thrdhold) {
+      if ((int)diff_avr > /*220*/wfd_ds_thrdhold) {
         resample = 1; resample_step = 2;
-      } else if (diff_avr</*180*/wfd_us_thrdhold) {
+      } else if ((int)diff_avr</*180*/wfd_us_thrdhold) {
         // once we see a single shot of low boundry we finish down-sampling
         resample = 1; resample_step = -2;
       }else if(resample && (diff_avr < 200)){
@@ -446,7 +451,7 @@ void audioCallback(int event, void* user, void *info)
 #if 1
     if (audec->tsync_mode == TSYNC_MODE_PCRMASTER && audec->pcrtsync_enable) {
         if (audec->adis_flag <= 0) {
-            unsigned long apts, pcrscr;
+            //unsigned long apts, pcrscr;
             int64_t apts64, pcrscr64;
 
             apts64 = audec->apts64;
@@ -467,21 +472,21 @@ void audioCallback(int event, void* user, void *info)
                 }
                 //if (((apts64 - pcrscr64) > (int64_t)(audec->fill_trackzero_thrsh)) ||((apts64 > pcrscr64) && (am_io.status.data_len < 0x200))) {
                 if ((apts64 - pcrscr64) > (int64_t)(audec->fill_trackzero_thrsh)) {
-		      adec_print("[%s:%d] %d, thrsh:%d,   apts64:%lld, pcrscr64:%lld, diff:%lld, lastapts:%lx, pcmsize:%d, abuffer_lv:0x%x\n", 
-                            __FUNCTION__, __LINE__, fill_audiotrack_zero, audec->fill_trackzero_thrsh,apts64, pcrscr64, apts64-pcrscr64,audec->adsp_ops.last_audio_pts,buffer->size, am_io.status.data_len);
+                //adec_print("[%s:%d] %d, thrsh:%d,   apts64:%ld, pcrscr64:%ld, diff:%ld, lastapts:%lx, pcmsize:%ld, abuffer_lv:0x%x\n", 
+                //__FUNCTION__, __LINE__, fill_audiotrack_zero, audec->fill_trackzero_thrsh,apts64, pcrscr64, apts64-pcrscr64,audec->adsp_ops.last_audio_pts,buffer->size, am_io.status.data_len);
                 if (skip_unnormal_discontinue++ > 10) {
                         memset((char*)(buffer->i16), 0, buffer->size);
                         if (!fill_audiotrack_zero) {
                             adec_pts_pause();
                         }
                         fill_audiotrack_zero =  audec->fill_trackzero_thrsh/(20*90);
-                        adec_print("[%s:%d] %d, thrsh:%d,   apts64:%lld, pcrscr64:%lld, diff:%lld, lastapts:%lx, pcmsize:%d, abuffer_lv:0x%x\n", 
-                            __FUNCTION__, __LINE__, fill_audiotrack_zero, audec->fill_trackzero_thrsh,apts64, pcrscr64, apts64-pcrscr64,audec->adsp_ops.last_audio_pts,buffer->size, am_io.status.data_len);
+                        //adec_print("[%s:%d] %d, thrsh:%d,   apts64:%ld, pcrscr64:%ld, diff:%ld, lastapts:%lx, pcmsize:%ld, abuffer_lv:0x%x\n", 
+                        //__FUNCTION__, __LINE__, fill_audiotrack_zero, audec->fill_trackzero_thrsh,apts64, pcrscr64, apts64-pcrscr64,audec->adsp_ops.last_audio_pts,buffer->size, am_io.status.data_len);
                         return;
                     }      
                 } else {
                        if (skip_unnormal_discontinue>0) {
-                          adec_print("[%s:%d], skip_unnormal_discontinue:%d, fill_audiotrack_zero:%d, apts-pcr:%lld, ---------------------------\n",__FUNCTION__, __LINE__, skip_unnormal_discontinue,fill_audiotrack_zero,apts64 - pcrscr64);
+                          //adec_print("[%s:%d], skip_unnormal_discontinue:%d, fill_audiotrack_zero:%d, apts-pcr:%lld, ---------------------------\n",__FUNCTION__, __LINE__, skip_unnormal_discontinue,fill_audiotrack_zero,apts64 - pcrscr64);
                           skip_unnormal_discontinue = 0;
                        }
                        unnormal_discontinue = 0;
@@ -498,7 +503,7 @@ void audioCallback(int event, void* user, void *info)
                     }
     
                     memset((char*)(buffer->i16), 0, buffer->size);
-                    adec_print("## %d, %d, apts bigger than pcr, 2222 apts64:%lld, pcrscr64:%lld, diff:%lld, \n", fill_audiotrack_zero, buffering_audio_data, apts64, pcrscr64, apts64-pcrscr64);
+                    //adec_print("## %d, %d, apts bigger than pcr, 2222 apts64:%lld, pcrscr64:%lld, diff:%lld, \n", fill_audiotrack_zero, buffering_audio_data, apts64, pcrscr64, apts64-pcrscr64);
                     return;
                 } else {
                     if (fill_audiotrack_zero > 0 && ((apts64 - pcrscr64) <= (int64_t)(70*TIME_UNIT90K/1000))
@@ -515,18 +520,18 @@ void audioCallback(int event, void* user, void *info)
                 if (audec->apts64 - audec->last_apts64 > RESAMPLE_THRESHOLD) {
                     int64_t diff_discontinue = abs(pcrscr64 - apts64);
                     if (diff_discontinue > (int64_t)(TIME_UNIT90K * 3)) {
-                        adec_print("discontinue: #pcrmaster: %lld, %lld, %lld, %d,%d,--------\n", apts64, pcrscr64,
-                        apts64 - pcrscr64, RESAMPLE_THRESHOLD, ((pcrscr64 - apts64) > (int64_t)(100 * TIME_UNIT90K / 1000)));
+                        //adec_print("discontinue: #pcrmaster: %lld, %ld, %lld, %d,%d,--------\n", apts64, pcrscr64,
+                         //   apts64 - pcrscr64, RESAMPLE_THRESHOLD, ((pcrscr64 - apts64) > (int64_t)(100 * TIME_UNIT90K / 1000)));
                         af_set_resample_type(RESAMPLE_TYPE_NONE);
                     } else if ((pcrscr64 - apts64) > (int64_t)RESAMPLE_THRESHOLD) {
                         af_set_resample_type(RESAMPLE_TYPE_DOWN);
-                        adec_print("down: #pcrmaster enable:%d, %lld, %lld, %lld,  --------\n", af_get_resample_enable_flag(),apts64,pcrscr64,pcrscr64-apts64);
+                        //adec_print("down: #pcrmaster enable:%d, %lld, %lld, %lld,  --------\n", af_get_resample_enable_flag(),apts64,pcrscr64,pcrscr64-apts64);
                     } else if ((apts64 - pcrscr64) > (int64_t)RESAMPLE_THRESHOLD) {
                         af_set_resample_type(RESAMPLE_TYPE_UP);
-                        adec_print("up: #pcrmaster enable:%d, %lld, %lld, %lld, --------\n", af_get_resample_enable_flag(), apts64,pcrscr64,apts64-pcrscr64);
+                        //adec_print("up: #pcrmaster enable:%d, %lld, %ld, %ld, --------\n", af_get_resample_enable_flag(), apts64,pcrscr64,apts64-pcrscr64);
                     } else {
-                        adec_print("none: #pcrmaster: %lld, %lld, %lld, %d,%d,--------\n",
-                        apts64,pcrscr64,apts64-pcrscr64,RESAMPLE_THRESHOLD,((pcrscr64 - apts64) > (int64_t)(100*TIME_UNIT90K/1000)));
+                        //adec_print("none: #pcrmaster: %ld, %ld, %ld, %d,%d,--------\n",
+                        //apts64,pcrscr64,apts64-pcrscr64,RESAMPLE_THRESHOLD,((pcrscr64 - apts64) > (int64_t)(100*TIME_UNIT90K/1000)));
                         af_set_resample_type(RESAMPLE_TYPE_NONE);
                     }
                     audec->last_apts64 = apts64;
@@ -534,8 +539,8 @@ void audioCallback(int event, void* user, void *info)
             }
         } else {
             audec->adis_flag--;
-            adec_print("[%s:%d], pcr:%llx, apts:%llx, tsync_pcr_dispoint:%llx, adis_flag:%d,-------------\n",__FUNCTION__, __LINE__, 
-				audec->pcrscr64, audec->apts64, audec->tsync_pcr_dispoint,audec->adis_flag);
+            //adec_print("[%s:%d], pcr:%lx, apts:%lx, tsync_pcr_dispoint:%x, adis_flag:%d,-------------\n",__FUNCTION__, __LINE__, 
+            //audec->pcrscr64, audec->apts64, audec->tsync_pcr_dispoint,audec->adis_flag);
         }
     }
 #endif
@@ -544,6 +549,7 @@ void audioCallback(int event, void* user, void *info)
         #if ANDROID_PLATFORM_SDK_VERSION >= 19
             channels = mpAudioTrack->channelCount();
         #elif defined(ANDROID_VERSION_JBMR2_UP)
+            audio_out_operations_t *out_ops = &audec->aout_ops;
             AudioTrack *track = (AudioTrack *)out_ops->private_data;
             channels = track->channelCount();
         #else
@@ -591,13 +597,13 @@ void audioCallback(int event, void* user, void *info)
 }
 #ifdef USE_ARM_AUDIO_DEC
 //-------------------------------------------------------------------------
-static void i2s_iec958_sync_force(struct aml_audio_dec* audec,int bytes_readed_diff_allowd)
+static void i2s_iec958_sync_force(struct aml_audio_dec* audec,int bytes_readed_diff_allowd __unused)
 {
-     int bytes_err= audec->raw_bytes_readed-audec->pcm_bytes_readed*audec->codec_type;
-     int bytes_cnt;
-     int len;
-     int goon_read_data_flag=1;
-     char tmp[2048];
+     //int bytes_err= audec->raw_bytes_readed-audec->pcm_bytes_readed*audec->codec_type;
+     //int bytes_cnt;
+     //int len;
+     //int goon_read_data_flag=1;
+     //char tmp[2048];
      int64_t tmp64;
      #if 0
      if(-bytes_err>bytes_readed_diff_allowd)
@@ -686,7 +692,7 @@ void audioCallback_raw(int event, void* user, void *info)
 
     if (audec->adsp_ops.dsp_on) {
          int bytes_cnt=0;
-         while(bytes_cnt<buffer->size && !audec->need_stop){
+         while (bytes_cnt < (int)buffer->size && !audec->need_stop) {
                  len=audec->adsp_ops.dsp_read_raw(&audec->adsp_ops, (char*)(buffer->i16)+bytes_cnt,buffer->size-bytes_cnt);
                  bytes_cnt+=len;
                  if (len == 0) 
@@ -914,18 +920,17 @@ extern "C" int android_init(struct aml_audio_dec* audec)
      adec_print("up/down sampling thread 	 %d /%d ms \n",wfd_us_thrdhold,wfd_ds_thrdhold);	
     if(property_get("media.libplayer.wfd", wfd_prop, "0") > 0){
        wfd_enable = (strcmp(wfd_prop, "1") == 0);
-    if(wfd_enable)	   
-   {		
-    	audio_io_handle_t handle = AudioSystem::getOutput(AUDIO_STREAM_MUSIC,
-	                                    48000,
-	                                    AUDIO_FORMAT_PCM_16_BIT,
-	                                    AUDIO_CHANNEL_OUT_STEREO,
+    if (wfd_enable) {
+        audio_io_handle_t handle = -1;/*AudioSystem::getOutput(AUDIO_STREAM_MUSIC,
+                                        48000,
+                                        AUDIO_FORMAT_PCM_16_BIT,
+                                        AUDIO_CHANNEL_OUT_STEREO,
 #if defined(_VERSION_ICS) 
-					AUDIO_POLICY_OUTPUT_FLAG_INDIRECT
+                                        AUDIO_POLICY_OUTPUT_FLAG_INDIRECT
 #else	//JB...			
-	                            AUDIO_OUTPUT_FLAG_PRIMARY
+                                        AUDIO_OUTPUT_FLAG_PRIMARY
 #endif	                            
-        );
+                                        );*/
     if(handle > 0){
 	  char str[64];
       status_t ret;
@@ -1203,13 +1208,13 @@ extern "C" int android_start(struct aml_audio_dec* audec)
     return 0;
 }
 
-extern "C" int android_pause_raw(struct aml_audio_dec* audec)
+extern "C" int android_pause_raw(struct aml_audio_dec* audec __unused)
 {
 		Mutex::Autolock _l(mLock_raw);
         adec_print("[%s %d]android raw_out pause",__FUNCTION__,__LINE__);
-        audio_out_operations_t *out_ops = &audec->aout_ops;
 
 #if ANDROID_PLATFORM_SDK_VERSION < 19
+        audio_out_operations_t *out_ops = &audec->aout_ops;
         AudioTrack *track = (AudioTrack *)out_ops->private_data_raw;
 #else
         AudioTrack *track = mpAudioTrack_raw.get();
@@ -1229,17 +1234,17 @@ extern "C" int android_pause_raw(struct aml_audio_dec* audec)
  */
 extern "C" int android_pause(struct aml_audio_dec* audec)
 {
-    
     Mutex::Autolock _l(mLock);
-    audio_out_operations_t *out_ops = &audec->aout_ops;
+
 #if ANDROID_PLATFORM_SDK_VERSION < 19
+    audio_out_operations_t *out_ops = &audec->aout_ops;
     AudioTrack *track = (AudioTrack *)out_ops->private_data;
 #else
     AudioTrack *track = mpAudioTrack.get();
 #endif
 #ifdef USE_ARM_AUDIO_DEC
-	if(out_ops->audio_out_raw_enable)
-    	android_pause_raw(audec);
+	//if(out_ops->audio_out_raw_enable)
+    //	android_pause_raw(audec);
 #endif 
     adec_print("android out pause");
 
@@ -1250,23 +1255,23 @@ extern "C" int android_pause(struct aml_audio_dec* audec)
 
     track->pause();
 #ifdef USE_ARM_AUDIO_DEC	
-    adec_print("[%s %d] PRE_PAUSE:raw_bytes_readed/%lld pcm_bytes_readed/%lld delta/%lld\n",__FUNCTION__,__LINE__,
-            audec->raw_bytes_readed,audec->pcm_bytes_readed,audec->pcm_bytes_readed-audec->raw_bytes_readed);
+    //adec_print("[%s %d] PRE_PAUSE:raw_bytes_readed/%ld pcm_bytes_readed/%ld delta/%ld\n",__FUNCTION__,__LINE__,
+    //        audec->raw_bytes_readed,audec->pcm_bytes_readed,audec->pcm_bytes_readed-audec->raw_bytes_readed);
     i2s_iec958_sync_force(audec,0);
-    adec_print("[%s %d] POST_PAUSE:raw_bytes_readed/%lld pcm_bytes_readed/%lld delta/%lld\n",__FUNCTION__,__LINE__,
-            audec->raw_bytes_readed,audec->pcm_bytes_readed,audec->pcm_bytes_readed-audec->raw_bytes_readed);
+    //adec_print("[%s %d] POST_PAUSE:raw_bytes_readed/%ld pcm_bytes_readed/%ld delta/%ld\n",__FUNCTION__,__LINE__,
+    //        audec->raw_bytes_readed,audec->pcm_bytes_readed,audec->pcm_bytes_readed-audec->raw_bytes_readed);
     audec->i2s_iec958_sync_flag=1;
 #endif	
     return 0;
 }
 
-extern "C" int android_resume_raw(struct aml_audio_dec* audec)
+extern "C" int android_resume_raw(struct aml_audio_dec* audec __unused)
 {
 	Mutex::Autolock _l(mLock_raw);
     adec_print("[%s %d]android raw_out resume",__FUNCTION__,__LINE__);
-  
-    audio_out_operations_t *out_ops = &audec->aout_ops;
+
 #if ANDROID_PLATFORM_SDK_VERSION < 19
+    audio_out_operations_t *out_ops = &audec->aout_ops;
     AudioTrack *track = (AudioTrack *)out_ops->private_data_raw;
 #else
     AudioTrack *track = mpAudioTrack_raw.get();
@@ -1283,21 +1288,22 @@ extern "C" int android_resume_raw(struct aml_audio_dec* audec)
  * \param audec pointer to audec
  * \return 0 on success otherwise negative error code
  */
-extern "C" int android_resume(struct aml_audio_dec* audec)
+extern "C" int android_resume(struct aml_audio_dec* audec __unused)
 {
 
     Mutex::Autolock _l(mLock);
-    audio_out_operations_t *out_ops = &audec->aout_ops;
+
 #if ANDROID_PLATFORM_SDK_VERSION < 19
+    audio_out_operations_t *out_ops = &audec->aout_ops;
     AudioTrack *track = (AudioTrack *)out_ops->private_data;
 #else
     AudioTrack *track = mpAudioTrack.get();
 #endif
 
 #ifdef USE_ARM_AUDIO_DEC
-    i2s_iec958_sync_force(audec,0);
-	if(out_ops->audio_out_raw_enable)
-    	android_resume_raw(audec);
+    //i2s_iec958_sync_force(audec,0);
+	//if(out_ops->audio_out_raw_enable)
+    //	android_resume_raw(audec);
 #endif	
     adec_print("android out resume");
     ttt = 0;
@@ -1315,14 +1321,14 @@ extern "C" int android_resume(struct aml_audio_dec* audec)
     return 0;
 }
 #ifdef USE_ARM_AUDIO_DEC
-extern "C" int android_stop_raw(struct aml_audio_dec* audec)
+extern "C" int android_stop_raw(struct aml_audio_dec* audec __unused)
 {
 	Mutex::Autolock _l(mLock_raw);
     adec_print("[%s %d]android raw_out stop",__FUNCTION__,__LINE__);
 
     audio_out_operations_t *out_ops = &audec->aout_ops;
 #if ANDROID_PLATFORM_SDK_VERSION < 19
-    AudioTrack *track = (AudioTrack *)out_ops->private_data_raw;
+    //AudioTrack *track = (AudioTrack *)out_ops->private_data_raw;
 #else
     AudioTrack *track = mpAudioTrack_raw.get();
 #endif
@@ -1351,15 +1357,16 @@ extern "C" int android_stop_raw(struct aml_audio_dec* audec)
 extern "C" int android_stop(struct aml_audio_dec* audec)
 {
     Mutex::Autolock _l(mLock);
+
     audio_out_operations_t *out_ops = &audec->aout_ops;
 #if ANDROID_PLATFORM_SDK_VERSION < 19
-    AudioTrack *track = (AudioTrack *)out_ops->private_data;
+    //AudioTrack *track = (AudioTrack *)out_ops->private_data;
 #else
     AudioTrack *track = mpAudioTrack.get();
 #endif
 #ifdef USE_ARM_AUDIO_DEC
-	if(out_ops->audio_out_raw_enable)
-    	android_stop_raw(audec);
+	//if(out_ops->audio_out_raw_enable)
+       //	android_stop_raw(audec);
 #endif 
     adec_print("android out stop");
     if(audec->channels == 8){
@@ -1396,9 +1403,9 @@ extern "C" int android_stop(struct aml_audio_dec* audec)
 extern "C" unsigned long android_latency(struct aml_audio_dec* audec)
 {
     unsigned long latency;
-    audio_out_operations_t *out_ops = &audec->aout_ops;
 
 #if ANDROID_PLATFORM_SDK_VERSION < 19
+    audio_out_operations_t *out_ops = &audec->aout_ops;
     AudioTrack *track = (AudioTrack *)out_ops->private_data;
 #else
     AudioTrack *track = mpAudioTrack.get();
@@ -1407,7 +1414,7 @@ extern "C" unsigned long android_latency(struct aml_audio_dec* audec)
         return 0;
     if (track) {
         status_t s;
-        int ret = -1;
+        //int ret = -1;
         int64_t write_samples;
         int cache_samples;
         int delay_us, t_us;
@@ -1447,15 +1454,15 @@ extern "C" unsigned long android_latency(struct aml_audio_dec* audec)
  * \param audec pointer to audec
  * \return output latency
  */
-extern "C" int android_get_position(struct aml_audio_dec* audec,
+extern "C" int android_get_position(struct aml_audio_dec* audec __unused,
     int64_t *position,
     int64_t *timeus)
 {
-    audio_out_operations_t *out_ops = &audec->aout_ops;
     AudioTimestamp timestamp;
     status_t s;
     int ret = -1 ;
 #if ANDROID_PLATFORM_SDK_VERSION < 19
+    audio_out_operations_t *out_ops = &audec->aout_ops;
     AudioTrack *track = (AudioTrack *)out_ops->private_data;
 #else
     AudioTrack *track = mpAudioTrack.get();
@@ -1485,8 +1492,8 @@ extern "C" int android_mute_raw(struct aml_audio_dec* audec, adec_bool_t en)
 	Mutex::Autolock _l(mLock_raw);
 	adec_print("[%s %d]android raw_out mute",__FUNCTION__,__LINE__);
 
-    audio_out_operations_t *out_ops = &audec->aout_ops;
 #if ANDROID_PLATFORM_SDK_VERSION < 19
+    audio_out_operations_t *out_ops = &audec->aout_ops;
     AudioTrack *track = (AudioTrack *)out_ops->private_data_raw;
 #else
     AudioTrack *track = mpAudioTrack_raw.get();
@@ -1500,13 +1507,13 @@ extern "C" int android_mute_raw(struct aml_audio_dec* audec, adec_bool_t en)
     return 0;
 }
 #endif
-extern "C" int android_mute(struct aml_audio_dec* audec, adec_bool_t en)
+extern "C" int android_mute(struct aml_audio_dec* audec __unused, adec_bool_t en __unused)
 {
     Mutex::Autolock _l(mLock);
     adec_print("android out mute");
     
-    audio_out_operations_t *out_ops = &audec->aout_ops;
 #if ANDROID_PLATFORM_SDK_VERSION < 19
+    audio_out_operations_t *out_ops = &audec->aout_ops;
     AudioTrack *track = (AudioTrack *)out_ops->private_data;
 #else
     AudioTrack *track = mpAudioTrack.get();
@@ -1534,13 +1541,13 @@ extern "C" int android_mute(struct aml_audio_dec* audec, adec_bool_t en)
  * \param vol volume value
  * \return 0 on success otherwise negative error code
  */
-extern "C" int android_set_volume(struct aml_audio_dec* audec, float vol)
+extern "C" int android_set_volume(struct aml_audio_dec* audec __unused, float vol)
 {
     Mutex::Autolock _l(mLock);
     adec_print("android set volume");
-    
-    audio_out_operations_t *out_ops = &audec->aout_ops;
+
 #if ANDROID_PLATFORM_SDK_VERSION < 19
+    audio_out_operations_t *out_ops = &audec->aout_ops;
     AudioTrack *track = (AudioTrack *)out_ops->private_data;
 #else
     AudioTrack *track = mpAudioTrack.get();
@@ -1562,13 +1569,13 @@ extern "C" int android_set_volume(struct aml_audio_dec* audec, float vol)
  * \param rvol refer to right volume value
  * \return 0 on success otherwise negative error code
  */
-extern "C" int android_set_lrvolume(struct aml_audio_dec* audec, float lvol,float rvol)
+extern "C" int android_set_lrvolume(struct aml_audio_dec* audec __unused, float lvol,float rvol)
 {
     Mutex::Autolock _l(mLock);
     adec_print("android set left and right volume separately");
-    
-    audio_out_operations_t *out_ops = &audec->aout_ops;
+
 #if ANDROID_PLATFORM_SDK_VERSION < 19
+    audio_out_operations_t *out_ops = &audec->aout_ops;
     AudioTrack *track = (AudioTrack *)out_ops->private_data;
 #else
     AudioTrack *track = mpAudioTrack.get();
@@ -1582,7 +1589,7 @@ extern "C" int android_set_lrvolume(struct aml_audio_dec* audec, float lvol,floa
 
     return 0;
 }
-extern "C" int android_set_track_rate(struct aml_audio_dec* audec,void *rate)
+extern "C" int android_set_track_rate(struct aml_audio_dec* audec __unused,void *rate)
 {
 #if ANDROID_PLATFORM_SDK_VERSION >= 23
     Mutex::Autolock _l(mLock);
@@ -1590,7 +1597,7 @@ extern "C" int android_set_track_rate(struct aml_audio_dec* audec,void *rate)
     struct AudioPlaybackRate  Rate = *(struct AudioPlaybackRate*)rate;
     audio_out_operations_t *out_ops = &audec->aout_ops;
 #if ANDROID_PLATFORM_SDK_VERSION < 19
-    AudioTrack *track = (AudioTrack *)out_ops->private_data;
+    //AudioTrack *track = (AudioTrack *)out_ops->private_data;
 #else
     AudioTrack *track = mpAudioTrack.get();
 #endif

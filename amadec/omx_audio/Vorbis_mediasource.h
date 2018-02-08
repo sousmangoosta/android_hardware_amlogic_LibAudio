@@ -6,7 +6,8 @@
 #include  "MediaBufferGroup.h"
 #include  "MetaData.h"
 #include  "audio_mediasource.h"
-#include "audio-dec.h"
+#include  "audio-dec.h"
+#include  "MediaBufferBase.h"
 
 namespace android
 {
@@ -20,7 +21,7 @@ public:
     status_t start(MetaData *params = NULL);
     status_t stop();
     sp<MetaData> getFormat();
-    status_t read(MediaBuffer **buffer, const ReadOptions *options = NULL);
+    status_t read(MediaBufferBase **buffer, const ReadOptions *options = NULL);
 
     int  GetReadedBytes();
     int GetSampleRate();

@@ -22,15 +22,15 @@ static HAACIOBuf hAACIOBuf = NULL;
 
 static int mute_pcm_bytes;
 /* check the normal frame size */
-static unsigned last_frm_size;
-static unsigned cur_frm_size;
+//static unsigned last_frm_size;
+//static unsigned cur_frm_size;
 static int lastFrameLen ;
 static int lastSampPerFrm ;
 
 #define FRAME_RECORD_NUM   20
 static unsigned error_count = 0;
 static unsigned mute_pcm_thread;
-static unsigned his_index;
+//static unsigned his_index;
 static unsigned frame_length_his[FRAME_RECORD_NUM];
 
 static unsigned stream_in_offset = 0;
@@ -121,7 +121,7 @@ static int uio_init()
     phys_size = (phys_size + pagesize - 1) & (~(pagesize - 1));
     memmap = mmap(NULL, phys_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd_uio, 0 * pagesize);
 
-    audio_codec_print("memmap = %x , pagesize = %x\n", memmap, pagesize);
+    audio_codec_print("memmap = %x , pagesize = %x\n", (int)memmap, pagesize);
     if (memmap == MAP_FAILED) {
         audio_codec_print("map /dev/uio0 failed\n");
         return -1;
@@ -129,7 +129,7 @@ static int uio_init()
 
     if (phys_offset == 0)
         phys_offset = (AIU_AIFIFO_CTRL*4)&(pagesize-1);
-    reg_base = memmap + phys_offset;
+    reg_base = (unsigned int *)memmap + phys_offset;
     return 0;
 }
 
@@ -260,9 +260,9 @@ static void aac_refill_buffer(HAACIOBuf hIOBuf)
     AACIOBuf *IOBuf = (AACIOBuf*)hIOBuf;
     int bytes_expected;
     int read_bytes;
-    int read_level_count = 0;
+    //int read_level_count = 0;
     int  buf_level = 0;
-    int retry_time = 0;
+    //int retry_time = 0;
 
 start_read:
     if (exit_flag) {
@@ -282,7 +282,7 @@ start_read:
         }
 
         while (IOBuf->bytesLeft < 0) {
-            printk("IOBuf->bytesLeft < 0\n", IOBuf->bytesLeft);
+            printk("IOBuf->bytesLeft < %d\n", IOBuf->bytesLeft);
         }
 
         bytes_expected = AAC_INPUTBUF_SIZE - IOBuf->bytesLeft;
@@ -300,11 +300,11 @@ start_read:
         IOBuf->readPtr = IOBuf->readBuf;
         IOBuf->bytesLeft += read_bytes;
     } while (0);
-    if (IOBuf->bytesLeft < get_frame_size()) {
+    if (IOBuf->bytesLeft < (int)get_frame_size()) {
         goto start_read;
     }
 }
-
+#if 0
 static int aac_reset_decoder(HAACDecoder hAACDecoder, HAACIOBuf hIOBuf)
 {
     AACIOBuf *IOBuf = (AACIOBuf*)hIOBuf;
@@ -312,6 +312,7 @@ static int aac_reset_decoder(HAACDecoder hAACDecoder, HAACIOBuf hIOBuf)
     IOBuf->bytesLeft = 0;
     return AACFlushCodec(hAACDecoder);
 }
+#endif
 static int aac_decode_frame(HAACDecoder hAACDecoder, HAACIOBuf hIOBuf)
 {
     int err;
@@ -328,15 +329,15 @@ static int aac_decode_frame(HAACDecoder hAACDecoder, HAACIOBuf hIOBuf)
     err = AACDecode(hAACDecoder, &(IOBuf->readPtr), &(IOBuf->bytesLeft), (IOBuf->outBuf));
     return err;
 }
-int audio_dec_init(audio_decoder_operations_t *adp)
+int audio_dec_init(audio_decoder_operations_t *adp __unused)
 {
     //printk("\n\n[%s]WFDAAC DEC BuildDate--%s  BuildTime--%s", __FUNCTION__, __DATE__, __TIME__);
     char value[PROPERTY_VALUE_MAX];
     if (property_get("media.wfd.debug_dec", value, NULL) > 0) {
         enable_debug_print = atoi(value);
     }
-    int err = 0, ch = 0, i;
-    AACFrameInfo aacFrameInfo = {0};
+    int err = 0;
+    //AACFrameInfo aacFrameInfo = {0};
     audio_codec_print("helix_aac_decoder_init start \n");
     err = uio_init();
     if (err) {
@@ -367,15 +368,15 @@ int audio_dec_init(audio_decoder_operations_t *adp)
 
 */
 #define FATAL_ERR_RESET_COUNT  2000
-int audio_dec_decode(audio_decoder_operations_t *adec_ops, char *buf, int *outlen, char *inbuf, int inlen)
+int audio_dec_decode(audio_decoder_operations_t *adec_ops, char *buf, int *outlen, char *inbuf, int inlen __unused)
 {
-    int err, i, sample_out = 0, ch;
+    int err, i, sample_out = 0;
     short *pcmbuf = (short*)buf;
     short *ouput = (short*)(((AACIOBuf*)hAACIOBuf)->outBuf);
     int ch_num;
     int sum;
     unsigned ch_map_scale[6] = {2, 4, 4, 2, 2, 0}; //full scale == 8
-    AACFrameInfo aacFrameInfo = {0};
+    AACFrameInfo aacFrameInfo;// = {0};
 
     err = aac_decode_frame(hAACDecoder, hAACIOBuf);
     if (!err) {
@@ -457,7 +458,7 @@ int audio_dec_decode(audio_decoder_operations_t *adec_ops, char *buf, int *outle
 #endif
         }
         if (error_count == FATAL_ERR_RESET_COUNT) { // send to player to reset the player
-            printk("decoder error count FATAL_ERR_RESET_COUNT %s\n", FATAL_ERR_RESET_COUNT);
+            printk("decoder error count FATAL_ERR_RESET_COUNT %d\n", FATAL_ERR_RESET_COUNT);
             //      trans_err_code(DECODE_FATAL_ERR);
         }
         //aac_reset_decoder(hAACDecoder, hAACIOBuf);
@@ -509,7 +510,7 @@ int audio_dec_decode(audio_decoder_operations_t *adec_ops, char *buf, int *outle
     return stream_in_offset;
 }
 
-int audio_dec_release(audio_decoder_operations_t *adec_ops)
+int audio_dec_release(audio_decoder_operations_t *adec_ops __unused)
 {
 #if 0
     if (hAACIOBuf) {
@@ -526,12 +527,12 @@ int audio_dec_release(audio_decoder_operations_t *adec_ops)
     }
     fd_uio = -1;
     if (memmap != NULL && memmap != MAP_FAILED) {
-        munmap(memmap, phys_size);
+        munmap((void *)memmap, phys_size);
     }
     printk("WFDAAC audio_dec_release done \n");
     return 0;
 }
-int audio_dec_getinfo(audio_decoder_operations_t *adec_ops, void *pAudioInfo)
+int audio_dec_getinfo(audio_decoder_operations_t *adec_ops __unused, void *pAudioInfo __unused)
 {
     return 0;
 }

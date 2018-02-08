@@ -155,6 +155,9 @@ include $(CLEAR_VARS)
 LOCAL_CFLAGS := \
         -fPIC -D_POSIX_SOURCE  -DDOLBY_DDPDEC51_MULTICHANNEL_ENDPOINT
 LOCAL_CFLAGS += -DANDROID_PLATFORM_SDK_VERSION=$(PLATFORM_SDK_VERSION)
+
+LOCAL_CLFAGS += -Werror -Wall -Wsign-compare -Wunused-parameter -Wunused-variable
+
 LOCAL_C_INCLUDES:= \
     $(LOCAL_PATH)/omx_audio/include \
     $(LOCAL_PATH)/omx_audio/../     \
@@ -163,6 +166,8 @@ LOCAL_C_INCLUDES:= \
     frameworks/native/include/media/openmax \
     frameworks/native/libs/nativewindow/include/system \
     frameworks/av/include/media/stagefright \
+    frameworks/av/include/media \
+    $(TOP)/hardware/amlogic/media/ammediaext \
     frameworks/native/include/utils
 
 LOCAL_SRC_FILES := \
@@ -185,7 +190,7 @@ LOCAL_PROPRIETARY_MODULE := true
 endif
 
 LOCAL_SHARED_LIBRARIES += libutils libmedia libz libbinder libdl libcutils libc libstagefright \
-                          libstagefright_omx liblog libamavutils libstagefright_foundation
+                          libstagefright_omx liblog libamavutils libstagefright_foundation libmediaextractor
 LOCAL_PRELINK_MODULE := false
 LOCAL_MODULE_TAGS := optional
 

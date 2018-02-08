@@ -60,6 +60,54 @@ static const int newBWTab[4][4] = {
     {0x00000000, 0x60000000, 0x73333333, 0x7d70a3d7},
 };
 
+static  Word64 MADD64(Word64 sum64, int x, int y)
+{
+	sum64 += (long long)x * y;
+	return sum64;
+}
+
+static  int FASTABS(int x)
+{
+    int sign;
+
+    sign = x >> (sizeof(int) * 8 - 1);
+    x ^= sign;
+    x -= sign;
+
+    return x;
+}
+
+static  int CLZ(int x)
+{
+    int numZeros;
+
+    if (!x) {
+        return 32;
+    }
+
+    /* count leading zeros with binary search (function should be 17 ARM instructions total) */
+    numZeros = 1;
+    if (!((unsigned int)x >> 16))   {
+        numZeros += 16;
+        x <<= 16;
+    }
+    if (!((unsigned int)x >> 24))   {
+        numZeros +=  8;
+        x <<=  8;
+    }
+    if (!((unsigned int)x >> 28))   {
+        numZeros +=  4;
+        x <<=  4;
+    }
+    if (!((unsigned int)x >> 30))   {
+        numZeros +=  2;
+        x <<=  2;
+    }
+
+    numZeros -= ((unsigned int)x >> 31);
+
+    return numZeros;
+}
 /**************************************************************************************
  * Function:    CVKernel1
  *
@@ -529,7 +577,7 @@ static int CalcLPCoefs(int *XBuf, int *a0re, int *a0im, int *a1re, int *a1im, in
  *
  * Return:      none
  **************************************************************************************/
-int GenerateHighFreq(PSInfoSBR *psi, SBRGrid *sbrGrid, SBRFreq *sbrFreq, SBRChan *sbrChan, int ch)
+int GenerateHighFreq(PSInfoSBR *psi, SBRGrid *sbrGrid, SBRFreq *sbrFreq, SBRChan *sbrChan, int ch __unused)
 {
     int band, newBW, c, t, gb, gbMask, gbIdx;
     int currPatch, p, x, k, g, i, iStart, iEnd, bw, bwsq;

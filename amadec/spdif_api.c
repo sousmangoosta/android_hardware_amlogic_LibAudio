@@ -30,6 +30,7 @@
 #include <sys/mman.h>
 #include "spdif_api.h"
 #include <log-print.h>
+#define LOG_TAG "spdif_api"
 #define AUDIO_SPDIF_DEV_NAME  "/dev/audio_spdif"
 
 static unsigned hw_rd_offset = 0;
@@ -75,7 +76,7 @@ int iec958_init()
     /* enable 958 outout */
     //  ioctl(dev_fd, AUDIO_SPDIF_SET_958_ENABLE,1);
     return 0;
-exit3:
+//exit3:
     if (map_buf != (void *)-1L) {
         munmap(map_buf, iec958_buffer_size);
     }

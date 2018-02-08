@@ -62,6 +62,55 @@ static const int invQuant4[16] = {
     0x7f7437ad, 0x7b1d1a49, 0x7294b5f2, 0x66256db2, 0x563ba8aa, 0x4362210e, 0x2e3d2abb, 0x17851aad,
 };
 
+static  Word64 MADD64(Word64 sum64, int x, int y)
+{
+	sum64 += (long long)x * y;
+	return sum64;
+}
+
+static  int FASTABS(int x)
+{
+    int sign;
+
+    sign = x >> (sizeof(int) * 8 - 1);
+    x ^= sign;
+    x -= sign;
+
+    return x;
+}
+
+static  int CLZ(int x)
+{
+    int numZeros;
+
+    if (!x) {
+        return 32;
+    }
+
+    /* count leading zeros with binary search (function should be 17 ARM instructions total) */
+    numZeros = 1;
+    if (!((unsigned int)x >> 16))   {
+        numZeros += 16;
+        x <<= 16;
+    }
+    if (!((unsigned int)x >> 24))   {
+        numZeros +=  8;
+        x <<=  8;
+    }
+    if (!((unsigned int)x >> 28))   {
+        numZeros +=  4;
+        x <<=  4;
+    }
+    if (!((unsigned int)x >> 30))   {
+        numZeros +=  2;
+        x <<=  2;
+    }
+
+    numZeros -= ((unsigned int)x >> 31);
+
+    return numZeros;
+}
+
 /**************************************************************************************
  * Function:    DecodeLPCCoefs
  *

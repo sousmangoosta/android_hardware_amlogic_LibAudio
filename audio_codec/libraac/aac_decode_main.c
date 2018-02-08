@@ -52,8 +52,8 @@
  * aac_decode_init
  */
 HX_RESULT
-aac_decode_init(void*              pInitParams,
-                UINT32             ulInitParamsSize,
+aac_decode_init(void*              pInitParams __unused,
+                UINT32             ulInitParamsSize __unused,
                 ra_format_info*    pStreamInfo,
                 void**             pDecode,
                 void*              pUserMem,
@@ -213,8 +213,8 @@ aac_decode_init(void*              pInitParams,
 
 HX_RESULT
 aac_decode_reset(void*   pDecode,
-                 UINT16* pSamplesOut,
-                 UINT32  ulNumSamplesAvail,
+                 UINT16* pSamplesOut __unused,
+                 UINT32  ulNumSamplesAvail __unused,
                  UINT32* pNumSamplesOut)
 {
     aac_decode* pDec = (aac_decode*) pDecode;
@@ -248,10 +248,10 @@ aac_decode_decode(void*       pDecode,
                   UINT32      ulNumBytes,
                   UINT32*     pNumBytesConsumed,
                   UINT16*     pSamplesOut,
-                  UINT32      ulNumSamplesAvail,
+                  UINT32      ulNumSamplesAvail __unused,
                   UINT32*     pNumSamplesOut,
                   UINT32      ulFlags,
-                  UINT32      ulTimeStamp)
+                  UINT32      ulTimeStamp __unused)
 {
     HX_RESULT retVal = HXR_FAIL;
     aac_decode* pDec = (aac_decode*) pDecode;
@@ -362,12 +362,12 @@ aac_decode_getrate(void*   pDecode,
 }
 
 HX_RESULT
-aac_decode_getdelay(void*   pDecode,
-                    UINT32* pNumSamples)
+aac_decode_getdelay(void*   pDecode __unused,
+                    UINT32* pNumSamples __unused)
 {
-    aac_decode* pDec = (aac_decode *)pDecode;
+    //aac_decode* pDec = (aac_decode *)pDecode;
     /* delay compensation is handled internally */
-    *pNumSamples = 0;
+    //*pNumSamples = 0;
 
     return HXR_OK;
 }

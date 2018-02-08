@@ -2,6 +2,8 @@ LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
 
+LOCAL_CFLAGS := -Werror -Wunused-parameter
+
 LOCAL_SHARED_LIBRARIES +=  libcutils libc  liblog
 LOCAL_MODULE    := libpcm_wfd
 LOCAL_SRC_FILES := lpcm_decode.c

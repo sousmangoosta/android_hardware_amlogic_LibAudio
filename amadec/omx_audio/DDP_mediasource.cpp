@@ -7,9 +7,9 @@
 
 extern "C" int read_buffer(unsigned char *buffer,int size);
 
-#define LOG_TAG "DDP_Medissource"
-#define ALOGI(...) __android_log_print(ANDROID_LOG_INFO,LOG_TAG,__VA_ARGS__)
-#define ALOGE(...) __android_log_print(ANDROID_LOG_ERROR,LOG_TAG,__VA_ARGS__)
+//#define LOG_TAG "DDP_Medissource"
+//#define ALOGI(...) __android_log_print(ANDROID_LOG_INFO,LOG_TAG,__VA_ARGS__)
+//#define ALOGE(...) __android_log_print(ANDROID_LOG_ERROR,LOG_TAG,__VA_ARGS__)
 
 namespace android {
 
@@ -44,7 +44,7 @@ DDPerr DDP_MediaSource::ddbs_unprj(DDP_BSTRM    *p_bstrm,DDPshort *p_data,  DDPs
 int DDP_MediaSource::Get_ChNum_DD(void *buf)//at least need:56bit(=7 bytes)
 {
     int numch=0;
-    DDP_BSTRM bstrm={0};
+    DDP_BSTRM bstrm={0, 0, 0};
     DDP_BSTRM *p_bstrm=&bstrm;
     short tmp=0,acmod,lfeon,fscod,frmsizecod;
     ddbs_init((short*)buf,0,p_bstrm);
@@ -123,7 +123,7 @@ int DDP_MediaSource::Get_ChNum_DDP(void *buf)//at least need:40bit(=5 bytes)
 {
 
     int numch=0;
-    DDP_BSTRM bstrm={0};
+    DDP_BSTRM bstrm={0, 0, 0};
     DDP_BSTRM *p_bstrm=&bstrm;
     short tmp=0,acmod,lfeon,strmtyp;
 
@@ -215,7 +215,7 @@ DDPerr DDP_MediaSource::ddbs_getbsid(DDP_BSTRM *p_inbstrm,    DDPshort *p_bsid)
 
 int DDP_MediaSource::Get_ChNum_AC3_Frame(void *buf)
 {
-    DDP_BSTRM bstrm={0};
+    DDP_BSTRM bstrm={0, 0, 0};
     DDP_BSTRM *p_bstrm=&bstrm;
     DDPshort    bsid;
     int chnum=0;
@@ -343,11 +343,11 @@ sp<MetaData> DDP_MediaSource::getFormat() {
     return mMeta;
 }
 
-status_t DDP_MediaSource::start(MetaData *params)
+status_t DDP_MediaSource::start(MetaData *params __unused)
 {
     ALOGI("%s %d \n",__FUNCTION__,__LINE__);
     mGroup = new MediaBufferGroup;
-    mGroup->add_buffer(new MediaBuffer(4096));
+    mGroup->add_buffer(MediaBufferBase::Create(4096));
     mStarted = true;
     return OK;
 }
@@ -361,7 +361,7 @@ status_t DDP_MediaSource::stop()
     return OK;
 }
 
-
+/*
 static int calc_dd_frame_size(int code)
 {
     static const int FrameSize32K[] = { 96, 96, 120, 120, 144, 144, 168, 168, 192, 192, 240, 240, 288, 288, 336, 336, 384, 384, 480, 480, 576, 576, 672, 672, 768, 768, 960, 960, 1152, 1152, 1344, 1344, 1536, 1536, 1728, 1728, 1920, 1920 };
@@ -377,6 +377,8 @@ static int calc_dd_frame_size(int code)
 
     return 0;
 }
+*/
+
 int DDP_MediaSource::get_frame_size(void)
 {
     int i;
@@ -436,7 +438,7 @@ int DDP_MediaSource::MediaSourceRead_buffer(unsigned char *buffer,int size)
    }
 }
 
-status_t DDP_MediaSource::read(MediaBuffer **out, const ReadOptions *options)
+status_t DDP_MediaSource::read(MediaBufferBase **out, const ReadOptions *options __unused)
 {
     *out = NULL;
     int readdiff = 0;
@@ -501,7 +503,7 @@ status_t DDP_MediaSource::read(MediaBuffer **out, const ReadOptions *options)
         }
     }
     read_delta = 0;
-    MediaBuffer *buffer;
+    MediaBufferBase *buffer;
     status_t err = mGroup->acquire_buffer(&buffer);
 
     if (err != OK) {
@@ -512,8 +514,8 @@ status_t DDP_MediaSource::read(MediaBuffer **out, const ReadOptions *options)
     memmove((unsigned char*)frame.rawbuf, (unsigned char*)(frame.rawbuf+frame_size), frame.len - frame_size);
     frame.len -= frame_size;
     buffer->set_range(0, frame_size);
-    buffer->meta_data()->setInt64(kKeyTime, mCurrentTimeUs);
-    buffer->meta_data()->setInt32(kKeyIsSyncFrame, 1);
+    buffer->meta_data().setInt64(kKeyTime, mCurrentTimeUs);
+    buffer->meta_data().setInt32(kKeyIsSyncFrame, 1);
 
     *out = buffer;
     if (readdiff > 0)

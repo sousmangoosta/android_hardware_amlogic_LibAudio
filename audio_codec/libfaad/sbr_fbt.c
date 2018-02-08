@@ -341,7 +341,7 @@ static real_t find_initial_power(uint8_t bands, uint8_t a0, uint8_t a1)
    version for bs_freq_scale > 0
 */
 uint8_t master_frequency_table(sbr_info *sbr, uint8_t k0, uint8_t k2,
-                               uint8_t bs_freq_scale, uint8_t bs_alter_scale)
+                               uint8_t bs_freq_scale, uint8_t bs_alter_scale __unused)
 {
     uint8_t k, bands, twoRegions;
     uint8_t k1;

@@ -27,6 +27,7 @@
 #include "Amsysfsutils.h"
 #include "amconfigutils.h"
 
+#define LOG_TAG "audiodsp_update"
 static int reset_track_enable = 0;
 void adec_reset_track_enable(int enable_flag)
 {
@@ -43,13 +44,13 @@ static int set_sysfs_int(const char *path, int val)
 {
     return amsysfs_set_sysfs_int(path, val);
 }
-
+/*
 static int audiodsp_get_format_changed_flag()
 {
     return get_sysfs_int("/sys/class/audiodsp/format_change_flag");
 
 }
-
+*/
 void audiodsp_set_format_changed_flag(int val)
 {
     set_sysfs_int("/sys/class/audiodsp/format_change_flag", val);
@@ -74,7 +75,7 @@ static int audiodsp_get_pcm_resample_enable()
     }
     return -1;
 }
-
+/*
 static int audiodsp_set_pcm_resample_enable(unsigned long enable)
 {
     int utils_fd, ret;
@@ -92,7 +93,7 @@ static int audiodsp_set_pcm_resample_enable(unsigned long enable)
     }
     return -1;
 }
-
+*/
 void adec_reset_track(aml_audio_dec_t *audec)
 {
     if (audec->format_changed_flag && audec->state >= INITTED && !audec->need_stop) {
@@ -117,7 +118,7 @@ void adec_reset_track(aml_audio_dec_t *audec)
 
 int audiodsp_format_update(aml_audio_dec_t *audec)
 {
-    int m_fmt;
+    //int m_fmt;
     int ret = -1;
     unsigned long val;
     dsp_operations_t *dsp_ops = &audec->adsp_ops;
@@ -130,7 +131,7 @@ int audiodsp_format_update(aml_audio_dec_t *audec)
     if (1/*audiodsp_get_format_changed_flag()*/) {
         ioctl(dsp_ops->dsp_file_fd, AUDIODSP_GET_CHANNELS_NUM, &val);
         if (val != (unsigned long) - 1) {
-            if (audec->channels != val) {
+            if (audec->channels != (int)val) {
                 //adec_print("dsp_format_update: pre_channels=%d  cur_channels=%d\n", audec->channels,val);
                 audec->channels = val;
                 ret = 1;
@@ -139,7 +140,7 @@ int audiodsp_format_update(aml_audio_dec_t *audec)
 
         ioctl(dsp_ops->dsp_file_fd, AUDIODSP_GET_SAMPLERATE, &val);
         if (val != (unsigned long) - 1) {
-            if (audec->samplerate != val) {
+            if (audec->samplerate != (int)val) {
                 //adec_print("dsp_format_update: pre_samplerate=%d  cur_samplerate=%d\n", audec->samplerate,val);
                 audec->samplerate = val;
                 ret = 2;
@@ -148,7 +149,7 @@ int audiodsp_format_update(aml_audio_dec_t *audec)
 #if 1
         ioctl(dsp_ops->dsp_file_fd, AUDIODSP_GET_BITS_PER_SAMPLE, &val);
         if (val != (unsigned long) - 1) {
-            if (audec->data_width != val) {
+            if (audec->data_width != (int)val) {
                 //adec_print("dsp_format_update: pre_data_width=%d  cur_data_width=%d\n", audec->data_width,val);
                 audec->data_width = val;
                 ret = 3;

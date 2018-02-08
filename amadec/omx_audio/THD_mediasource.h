@@ -6,6 +6,7 @@
 #include  "MediaBufferGroup.h"
 #include  "MetaData.h"
 #include  "audio_mediasource.h"
+#include  "MediaBufferBase.h"
 
 #define TRUEHDSYNC 0xf8726fba   //main sync header
 #define MAX_AUSIZE 4000         //max access unit size
@@ -30,7 +31,7 @@ public:
     status_t start(MetaData *params = NULL);
     status_t stop();
     sp<MetaData> getFormat();
-    status_t read(MediaBuffer **buffer, const ReadOptions *options = NULL);
+    status_t read(MediaBufferBase **buffer, const ReadOptions *options = NULL);
 
     int GetReadedBytes();
     int GetSampleRate();

@@ -29,6 +29,8 @@
 #include <string.h>
 #include <sys/mman.h>
 #include "pcmenc_api.h"
+
+#define LOG_TAG "pcmenc"
 #define AUDIODSP_PCMENC_DEV_NAME  "/dev/audiodsp_pcmenc"
 
 static char *map_buf = (void *)-1L;
@@ -62,7 +64,7 @@ static unsigned pcm_read_num = 0;
 static int pcmenc_skip_pcm(int size)
 {
     int ring_buf_content = 0;
-    int len = 0;
+    //int len = 0;
     int tail = 0;
     ioctl(dev_fd, AUDIODSP_PCMENC_GET_RING_BUF_CONTENT, &ring_buf_content);
     if (ring_buf_content > size) {
@@ -89,7 +91,7 @@ static int pcmenc_skip_pcm(int size)
 int pcmenc_read_pcm(char *inputbuf, uint size)
 {
     unsigned int ring_buf_content = 0;
-    int len = 0;
+    //int len = 0;
     int tail = 0;
     ioctl(dev_fd, AUDIODSP_PCMENC_GET_RING_BUF_CONTENT, &ring_buf_content);
     if (ring_buf_content > buffer_size * 4 / 5) {

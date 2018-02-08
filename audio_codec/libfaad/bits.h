@@ -106,37 +106,6 @@ extern "C" {
         return tmp;
     }
 
-    /* reads only n bytes from the stream instead of the standard 4 */
-    static /*INLINE*/ uint32_t getdword_n(void *mem, int n)
-    {
-        uint32_t tmp = 0;
-#ifndef ARCH_IS_BIG_ENDIAN
-        switch (n) {
-        case 3:
-            ((uint8_t*)&tmp)[1] = ((uint8_t*)mem)[2];
-        case 2:
-            ((uint8_t*)&tmp)[2] = ((uint8_t*)mem)[1];
-        case 1:
-            ((uint8_t*)&tmp)[3] = ((uint8_t*)mem)[0];
-        default:
-            break;
-        }
-#else
-        switch (n) {
-        case 3:
-            ((uint8_t*)&tmp)[2] = ((uint8_t*)mem)[2];
-        case 2:
-            ((uint8_t*)&tmp)[1] = ((uint8_t*)mem)[1];
-        case 1:
-            ((uint8_t*)&tmp)[0] = ((uint8_t*)mem)[0];
-        default:
-            break;
-        }
-#endif
-
-        return tmp;
-    }
-
     static INLINE uint32_t faad_showbits(bitfile *ld, uint32_t bits)
     {
         if (bits <= ld->bits_left) {
@@ -259,27 +228,6 @@ extern "C" {
             //        if (ld->bytes_left == 0)
             //            ld->no_more_reading = 1;
         }
-    }
-
-    static /*INLINE*/ uint32_t faad_getbits_rev(bitfile *ld, uint32_t n
-            DEBUGDEC)
-    {
-        uint32_t ret;
-
-        if (n == 0) {
-            return 0;
-        }
-
-        ret = faad_showbits_rev(ld, n);
-        faad_flushbits_rev(ld, n);
-
-#ifdef ANALYSIS
-        if (print) {
-            fprintf(stdout, "%4d %2d bits, val: %4d, variable: %d %s\n", dbg_count++, n, ret, var, dbg);
-        }
-#endif
-
-        return ret;
     }
 
 #ifdef DRM

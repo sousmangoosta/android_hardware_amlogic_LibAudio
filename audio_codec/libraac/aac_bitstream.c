@@ -127,7 +127,7 @@ void byteAlign(struct BITSTREAM *pBitstream)
   * @return an error code, signalling success or failure.
   * @see reverseBitstream
   */
-int newBitstream(struct BITSTREAM **ppBitstream, int nBits,
+int newBitstream(struct BITSTREAM **ppBitstream, int nBits __unused,
                  void* pUserMem, rm_malloc_func_ptr fpMalloc)
 {
     struct BITSTREAM *pBitstream ;

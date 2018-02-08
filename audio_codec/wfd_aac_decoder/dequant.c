@@ -123,6 +123,49 @@ static const int pow2frac[8] = {
     0x50a28be6, 0x7fffffff, 0x6597fa94, 0x50a28be6
 };
 
+static  int FASTABS(int x)
+{
+    int sign;
+
+    sign = x >> (sizeof(int) * 8 - 1);
+    x ^= sign;
+    x -= sign;
+
+    return x;
+}
+
+static  int CLZ(int x)
+{
+    int numZeros;
+
+    if (!x) {
+        return 32;
+    }
+
+    /* count leading zeros with binary search (function should be 17 ARM instructions total) */
+    numZeros = 1;
+    if (!((unsigned int)x >> 16))   {
+        numZeros += 16;
+        x <<= 16;
+    }
+    if (!((unsigned int)x >> 24))   {
+        numZeros +=  8;
+        x <<=  8;
+    }
+    if (!((unsigned int)x >> 28))   {
+        numZeros +=  4;
+        x <<=  4;
+    }
+    if (!((unsigned int)x >> 30))   {
+        numZeros +=  2;
+        x <<=  2;
+    }
+
+    numZeros -= ((unsigned int)x >> 31);
+
+    return numZeros;
+}
+
 /**************************************************************************************
  * Function:    DequantBlock
  *
@@ -372,7 +415,7 @@ int Dequantize(AACDecInfo *aacDecInfo, int ch)
  *
  * Notes:       only necessary if deinterleaving not part of Huffman decoding
  **************************************************************************************/
-int DeinterleaveShortBlocks(AACDecInfo *aacDecInfo, int ch)
+int DeinterleaveShortBlocks(AACDecInfo *aacDecInfo __unused, int ch __unused)
 {
     /* not used for this implementation - short block deinterleaving performed during Huffman decoding */
     return ERR_AAC_NONE;

@@ -99,7 +99,7 @@ static real_t const pow2_table[] = {
    multiplication/accumulation per random value.
 */
 static INLINE void gen_rand_vector(real_t *spec, int16_t scale_factor, uint16_t size,
-                                   uint8_t sub,
+                                   uint8_t sub __unused,
                                    /* RNG states */ uint32_t *__r1, uint32_t *__r2)
 {
 #ifndef FIXED_POINT
@@ -167,7 +167,7 @@ static INLINE void gen_rand_vector(real_t *spec, int16_t scale_factor, uint16_t 
 
 void pns_decode(ic_stream *ics_left, ic_stream *ics_right,
                 real_t *spec_left, real_t *spec_right, uint16_t frame_len,
-                uint8_t channel_pair, uint8_t object_type,
+                uint8_t channel_pair, uint8_t object_type __unused,
                 /* RNG states */ uint32_t *__r1, uint32_t *__r2)
 {
     uint8_t g, sfb, b;

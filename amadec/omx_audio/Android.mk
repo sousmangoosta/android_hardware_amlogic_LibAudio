@@ -27,7 +27,8 @@ endif
 
 LOCAL_SHARED_LIBRARIES += libutils libmedia libz libbinder libdl libcutils libc libstagefright \
                           libstagefright_omx libmedia_native liblog \
-                          libstagefright_foundation
+                          libstagefright_foundation \
+                          libmediaextractor
 
 LOCAL_PRELINK_MODULE := false
 LOCAL_MODULE_TAGS := optional

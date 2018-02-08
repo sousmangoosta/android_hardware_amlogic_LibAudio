@@ -7,9 +7,9 @@
 
 extern "C" int read_buffer(unsigned char *buffer,int size);
 
-#define LOG_TAG "DTSHD_Medissource"
-#define ALOGI(...) __android_log_print(ANDROID_LOG_INFO,LOG_TAG,__VA_ARGS__)
-#define ALOGE(...) __android_log_print(ANDROID_LOG_ERROR,LOG_TAG,__VA_ARGS__)
+//#define LOG_TAG "DTSHD_Medissource"
+//#define ALOGI(...) __android_log_print(ANDROID_LOG_INFO,LOG_TAG,__VA_ARGS__)
+//#define ALOGE(...) __android_log_print(ANDROID_LOG_ERROR,LOG_TAG,__VA_ARGS__)
 
 
 namespace android {
@@ -162,11 +162,11 @@ sp<MetaData> Dtshd_MediaSource::getFormat()
     return mMeta;
 }
 
-status_t  Dtshd_MediaSource::start(MetaData *params)
+status_t  Dtshd_MediaSource::start(MetaData *params __unused)
 {
     ALOGI("%s %d \n",__FUNCTION__,__LINE__);
     mGroup = new MediaBufferGroup;
-    mGroup->add_buffer(new MediaBuffer(AML_DCA_INPUT_DATA_LEN_PTIME));
+    mGroup->add_buffer(MediaBufferBase::Create(AML_DCA_INPUT_DATA_LEN_PTIME));
     mStarted = true;
     return OK;
 }
@@ -215,11 +215,11 @@ int Dtshd_MediaSource::MediaSourceRead_buffer(unsigned char *buffer,int size)
 }
 
 
-status_t Dtshd_MediaSource::read(MediaBuffer **out, const ReadOptions *options)
+status_t Dtshd_MediaSource::read(MediaBufferBase **out, const ReadOptions *options __unused)
 {
     *out = NULL;
-     int read_bytes_per_time;
-     MediaBuffer *buffer;
+     //int read_bytes_per_time;
+     MediaBufferBase *buffer;
      int byte_readed=0;
      status_t err;
      if (!FrameSizeDetectFlag)
@@ -266,8 +266,8 @@ status_t Dtshd_MediaSource::read(MediaBuffer **out, const ReadOptions *options)
           ALOGI("[%s %d]  pre_suspend_bytes/%d  %s \n",__FUNCTION__,__LINE__,pre_suspend_bytes,zarray);
            
           buffer->set_range(0, pre_suspend_bytes+FirFraBuf_Offset+frame_size);
-          buffer->meta_data()->setInt64(kKeyTime, mCurrentTimeUs);
-          buffer->meta_data()->setInt32(kKeyIsSyncFrame, 1);
+          buffer->meta_data().setInt64(kKeyTime, mCurrentTimeUs);
+          buffer->meta_data().setInt32(kKeyIsSyncFrame, 1);
           *out = buffer;
           FirFraBuf_Offset+=frame_size;
           FrameNumReaded++;
@@ -298,7 +298,7 @@ status_t Dtshd_MediaSource::read(MediaBuffer **out, const ReadOptions *options)
          //one real dts frame,so change the framesize to 10k.
          if (sample_rate == 96000)
              frame_size = AML_DCA_INPUT_DATA_LEN_PTIME;
-         if (MediaSourceRead_buffer((unsigned char*)(buffer->data()), frame_size) !=  frame_size)
+         if (MediaSourceRead_buffer(static_cast<unsigned char*>(buffer->data()), frame_size) !=  frame_size)
          {
            buffer->release();
            buffer = NULL;
@@ -308,8 +308,8 @@ status_t Dtshd_MediaSource::read(MediaBuffer **out, const ReadOptions *options)
          buffer->set_range(0,frame_size);
     }
 
-     buffer->meta_data()->setInt64(kKeyTime, mCurrentTimeUs);
-     buffer->meta_data()->setInt32(kKeyIsSyncFrame, 1);
+     buffer->meta_data().setInt64(kKeyTime, mCurrentTimeUs);
+     buffer->meta_data().setInt32(kKeyIsSyncFrame, 1);
      *out = buffer;
      FrameNumReaded++;
      return OK;

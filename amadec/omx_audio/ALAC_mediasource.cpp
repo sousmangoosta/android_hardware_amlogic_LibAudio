@@ -4,12 +4,13 @@
 #include <android/log.h>
 #include <cutils/properties.h>
 #include "ALAC_mediasource.h"
+#include "AmMetaDataExt.h"
 
 extern "C" int read_buffer(unsigned char *buffer,int size);
 
-#define LOG_TAG "ALAC_Medissource"
-#define ALOGI(...) __android_log_print(ANDROID_LOG_INFO,LOG_TAG,__VA_ARGS__)
-#define ALOGE(...) __android_log_print(ANDROID_LOG_ERROR,LOG_TAG,__VA_ARGS__)
+//#define LOG_TAG "ALAC_Medissource"
+//#define ALOGI(...) __android_log_print(ANDROID_LOG_INFO,LOG_TAG,__VA_ARGS__)
+//#define ALOGE(...) __android_log_print(ANDROID_LOG_ERROR,LOG_TAG,__VA_ARGS__)
 
 #define MaxFrameSize 16384
 
@@ -105,16 +106,17 @@ int ALAC_MediaSource::Set_pStop_ReadBuf_Flag(int *pStop)
 }
 
 int ALAC_MediaSource::GetReadedBytes()
-{    int bytes_used = 0;
-     bytes_used=bytes_readed_sum-bytes_readed_sum_pre;
-	 if(bytes_used<0)
-	 {
-	 	ALOGI("[%s]WARING: bytes_readed_sum(%lld) < bytes_readed_sum_pre(%lld) \n",__FUNCTION__,
-														bytes_readed_sum,bytes_readed_sum_pre);
-	 	bytes_used=0;
-	 }
-	 bytes_readed_sum_pre=bytes_readed_sum;
-     return bytes_used;
+{
+    int bytes_used = 0;
+    bytes_used=bytes_readed_sum-bytes_readed_sum_pre;
+    if (bytes_used < 0)
+    {
+        ALOGI("[%s]WARING: bytes_readed_sum(%ld) < bytes_readed_sum_pre(%ld) \n",__FUNCTION__,
+        (long)bytes_readed_sum, (long)bytes_readed_sum_pre);
+        bytes_used=0;
+    }
+    bytes_readed_sum_pre=bytes_readed_sum;
+    return bytes_used;
 }
 
 sp<MetaData> ALAC_MediaSource::getFormat() {
@@ -122,11 +124,11 @@ sp<MetaData> ALAC_MediaSource::getFormat() {
     return mMeta;
 }
 
-status_t ALAC_MediaSource::start(MetaData *params)
+status_t ALAC_MediaSource::start(MetaData *params __unused)
 {
 	ALOGI("[%s] in line (%d) \n",__FUNCTION__,__LINE__);
     mGroup = new MediaBufferGroup;
-	mGroup->add_buffer(new MediaBuffer(MaxFrameSize));
+	mGroup->add_buffer(MediaBufferBase::Create(MaxFrameSize));
 	mStarted = true;
     return OK;	
 }
@@ -140,7 +142,7 @@ status_t ALAC_MediaSource::stop()
     return OK;
 }
 
-status_t ALAC_MediaSource::read(MediaBuffer **out, const ReadOptions *options)
+status_t ALAC_MediaSource::read(MediaBufferBase **out, const ReadOptions *options __unused)
 {
 	*out = NULL;
 	unsigned char header_buffer[5];
@@ -178,7 +180,7 @@ status_t ALAC_MediaSource::read(MediaBuffer **out, const ReadOptions *options)
 	   return ERROR_END_OF_STREAM;
 	}
 	
-    MediaBuffer *buffer;
+    MediaBufferBase *buffer;
     status_t err = mGroup->acquire_buffer(&buffer);
     if (err != OK) {
         return err;
@@ -192,7 +194,7 @@ status_t ALAC_MediaSource::read(MediaBuffer **out, const ReadOptions *options)
 	}
 	bytes_readed_sum+=frame_size;
 	buffer->set_range(0, frame_size);
-	buffer->meta_data()->setInt64(kKeyTime, mCurrentTimeUs);
+	buffer->meta_data().setInt64(kKeyTime, mCurrentTimeUs);
 	
     *out = buffer;
 	 return OK;

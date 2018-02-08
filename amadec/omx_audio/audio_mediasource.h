@@ -5,6 +5,7 @@
 #include  "DataSource.h"
 #include  "MediaBufferGroup.h"
 #include  "MetaData.h"
+#include  "MediaBufferBase.h"
 
 namespace android
 {
@@ -15,11 +16,11 @@ public:
     virtual status_t start(MetaData *params = NULL) = 0;
     virtual status_t stop() = 0;
     virtual sp<MetaData> getFormat() = 0;
-    virtual status_t read(MediaBuffer **buffer, const ReadOptions *options = NULL) = 0;
+    virtual status_t read(MediaBufferBase **buffer, const ReadOptions *options = NULL) = 0;
 
     virtual int  GetReadedBytes() = 0;
     virtual int GetSampleRate() = 0;
-    virtual int SetSampleRate(int sample_rate){
+    virtual int SetSampleRate(int sample_rate __unused){
         return 0;
     };
     virtual int GetChNum() = 0;

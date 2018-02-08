@@ -57,6 +57,49 @@ static const int pow14[2][4] = {
     { 0x40000000, 0x4c1bf829, 0x5a82799a, 0x6ba27e65 }
 };
 
+static  int FASTABS(int x)
+{
+    int sign;
+
+    sign = x >> (sizeof(int) * 8 - 1);
+    x ^= sign;
+    x -= sign;
+
+    return x;
+}
+
+static  int CLZ(int x)
+{
+    int numZeros;
+
+    if (!x) {
+        return 32;
+    }
+
+    /* count leading zeros with binary search (function should be 17 ARM instructions total) */
+    numZeros = 1;
+    if (!((unsigned int)x >> 16))   {
+        numZeros += 16;
+        x <<= 16;
+    }
+    if (!((unsigned int)x >> 24))   {
+        numZeros +=  8;
+        x <<=  8;
+    }
+    if (!((unsigned int)x >> 28))   {
+        numZeros +=  4;
+        x <<=  4;
+    }
+    if (!((unsigned int)x >> 30))   {
+        numZeros +=  2;
+        x <<=  2;
+    }
+
+    numZeros -= ((unsigned int)x >> 31);
+
+    return numZeros;
+}
+
 /**************************************************************************************
  * Function:    StereoProcessGroup
  *

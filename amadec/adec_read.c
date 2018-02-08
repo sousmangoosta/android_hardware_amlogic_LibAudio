@@ -12,7 +12,7 @@
 #include "Amsysfsutils.h"
 #include "amconfigutils.h"
 
-
+#define LOG_TAG "adec_read"
 #define ASTREAM_DEV "/dev/uio0"
 #define ASTREAM_ADDR "/sys/class/astream/astream-dev/uio0/maps/map0/addr"
 #define ASTREAM_SIZE "/sys/class/astream/astream-dev/uio0/maps/map0/size"
@@ -78,14 +78,14 @@ int uio_init(aml_audio_dec_t *audec)
     phys_size = (phys_size + pagesize - 1) & (~(pagesize - 1));
     memmap = mmap(NULL, phys_size, PROT_READ | PROT_WRITE, MAP_SHARED, audec->fd_uio, 0 * pagesize);
 
-    adec_print("memmap = %x , pagesize = %x\n", memmap, pagesize);
+    adec_print("memmap = %p , pagesize = %x\n", memmap, pagesize);
     if (memmap == MAP_FAILED) {
         adec_print("map /dev/uio0 failed\n");
         return -1;
     }
     if (phys_offset == 0)
         phys_offset = ((AIU_AIFIFO_CTRL + addr_offset) << 2) & (pagesize - 1);
-    reg_base = memmap + phys_offset;
+    reg_base = (unsigned*)memmap + phys_offset;
     return 0;
 }
 
@@ -97,7 +97,7 @@ int uio_deinit(aml_audio_dec_t *audec)
     audec->fd_uio = -1;
 
     if (memmap != NULL && memmap != MAP_FAILED) {
-        munmap(memmap, phys_size);
+        munmap((void *)memmap, phys_size);
     }
     adec_print("audio_dec_release done \n");
     return 0;
@@ -134,7 +134,7 @@ int read_buffer(unsigned char *buffer, int size)
     iii = READ_MPEG_REG(AIU_MEM_AIFIFO_LEVEL) - EXTRA_DATA_SIZE;
     //  adec_print("read_buffer start iii = %d!!\n", iii);
 
-    static int cc = 0;
+    //static int cc = 0;
     len = 0;
 #if 0
     while (size >=  iii) {

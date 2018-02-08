@@ -169,7 +169,7 @@ static int refill(aml_audio_dec_t *audec, pcm_read_ctl_t *pcm_read_ctx, unsigned
             wave_timestamplen = (block_length[0] << 24) | (block_length[1] << 16) | (block_length[2] << 8) | (block_length[3]);
             refill_timestamp_len = wave_timestamplen;
 
-            CHECK_DATA_ENOUGH_SET(pcm_read_ctx, refill_timestamp_len, 0)
+            CHECK_DATA_ENOUGH_SET(pcm_read_ctx, (int)refill_timestamp_len, 0)
 
         } else if (tmp_a == 'R' && tmp_p == 'I' && tmp_t == 'F' && tmp_s == 'F') {
             if ((audec->codec_id == CODEC_ID_ADPCM_IMA_WAV) || (audec->codec_id == CODEC_ID_ADPCM_MS)) {
@@ -367,7 +367,7 @@ static int AdaptCoeff2 [MSADPCM_ADAPT_COEFF_COUNT] = {
 
 static int ms_adpcm_decode_block(short *pcm_buf, unsigned char *buf, int channel, int block)
 {
-    int sampleblk = 2036;
+    //int sampleblk = 2036;
     short bpred[2];
     short idelta[2];
     int blockindx = 0;
@@ -591,7 +591,7 @@ int ulaw2linear(unsigned char u_val)
     return ((u_val & SIGN_BIT) ? (BIAS - t) : (t - BIAS));
 }
 
-int runalawdecoder(aml_audio_dec_t *audec, pcm_read_ctl_t *pcm_read_ctx, unsigned char *buf, int len)
+int runalawdecoder(aml_audio_dec_t *audec, pcm_read_ctl_t *pcm_read_ctx, unsigned char *buf, int len __unused)
 {
     int i = 0;
     int tmp = 0;
@@ -607,7 +607,7 @@ int runalawdecoder(aml_audio_dec_t *audec, pcm_read_ctl_t *pcm_read_ctx, unsigne
     memcpy(buf, (char*)pcm_buf, 2 * WAVE_BLOCK_SIZE);
     return (WAVE_BLOCK_SIZE) * 2;
 }
-int runulawdecoder(aml_audio_dec_t *audec, pcm_read_ctl_t *pcm_read_ctx, unsigned char *buf, int len)
+int runulawdecoder(aml_audio_dec_t *audec, pcm_read_ctl_t *pcm_read_ctx, unsigned char *buf, int len __unused)
 {
     int i = 0;
     short *pcm_buf = (short*)wave_decoder_buffer[1].addr;
@@ -624,27 +624,27 @@ int runulawdecoder(aml_audio_dec_t *audec, pcm_read_ctl_t *pcm_read_ctx, unsigne
     return (WAVE_BLOCK_SIZE) * 2;
 
 }
-int runimaadpcmdecoder(aml_audio_dec_t *audec, pcm_read_ctl_t *pcm_read_ctx, unsigned char *buf, int len)
+int runimaadpcmdecoder(aml_audio_dec_t *audec, pcm_read_ctl_t *pcm_read_ctx, unsigned char *buf, int len __unused)
 {
     short *pcm_buf = (short*)wave_decoder_buffer[1].addr;
     int Output_Size = 0;
     int tmp = 0;
     char buffer[5];
-    unsigned  block_size = 0;
+    int block_size = 0;
     int UsedDataLenSave = 0;
     if (!block_align) {
         CHECK_DATA_ENOUGH_SET(pcm_read_ctx, 4, 0)
-        pcm_read(pcm_read_ctx, buffer, 4);
+        pcm_read(pcm_read_ctx, (unsigned char *)buffer, 4);
         while (1) {
             if ((buffer[0] == 0x11) && (buffer[1] == 0x22) && (buffer[2] == 0x33) && (buffer[3] == 0x44)) { //sync word
                 break;
             }
             CHECK_DATA_ENOUGH_SUB(pcm_read_ctx, 1, 3)
-            pcm_read(pcm_read_ctx, &buffer[4], 1);
+            pcm_read(pcm_read_ctx, (unsigned char *)&buffer[4], 1);
             memmove(buffer, &buffer[1], 4);
         }
         CHECK_DATA_ENOUGH_SUB(pcm_read_ctx, 2, 4)
-        pcm_read(pcm_read_ctx, buffer, 2);
+        pcm_read(pcm_read_ctx, (unsigned char *)buffer, 2);
 
         block_size = (buffer[0] << 8) | buffer[1];
         CHECK_DATA_ENOUGH_SUB(pcm_read_ctx, block_size, 6)
@@ -674,7 +674,7 @@ int runimaadpcmdecoder(aml_audio_dec_t *audec, pcm_read_ctl_t *pcm_read_ctx, uns
 
 }
 
-int runmsadpcmdecoder(aml_audio_dec_t *audec, pcm_read_ctl_t *pcm_read_ctx, unsigned char *buf, int len)
+int runmsadpcmdecoder(aml_audio_dec_t *audec, pcm_read_ctl_t *pcm_read_ctx, unsigned char *buf, int len __unused)
 {
     short *pcm_buf = (short*)wave_decoder_buffer[1].addr;
     int Output_Size = 0;
@@ -684,23 +684,23 @@ int runmsadpcmdecoder(aml_audio_dec_t *audec, pcm_read_ctl_t *pcm_read_ctx, unsi
     int UsedDataLenSave = 0;
     if (!block_align) {
         CHECK_DATA_ENOUGH_SET(pcm_read_ctx, 4, 0)
-        pcm_read(pcm_read_ctx, buffer, 4);
+        pcm_read(pcm_read_ctx, (unsigned char *)buffer, 4);
         while (1) {
             if ((buffer[0] == 0x11) && (buffer[1] == 0x22) && (buffer[2] == 0x33) && (buffer[3] == 0x44)) { //sync word
                 break;
             }
             CHECK_DATA_ENOUGH_SUB(pcm_read_ctx, 1, 3)
-            pcm_read(pcm_read_ctx, &buffer[4], 1);
+            pcm_read(pcm_read_ctx, (unsigned char *)&buffer[4], 1);
             memmove(buffer, &buffer[1], 4);
         }
 
         CHECK_DATA_ENOUGH_SUB(pcm_read_ctx, 2, 4)
-        pcm_read(pcm_read_ctx, buffer, 2);
+        pcm_read(pcm_read_ctx, (unsigned char *)buffer, 2);
         block_size = (buffer[0] << 8) | buffer[1];
-        CHECK_DATA_ENOUGH_SUB(pcm_read_ctx, block_size, 6)
+        CHECK_DATA_ENOUGH_SUB(pcm_read_ctx, (int)block_size, 6)
     } else {
         block_size = block_align;
-        CHECK_DATA_ENOUGH_SET(pcm_read_ctx, block_size, 0)
+        CHECK_DATA_ENOUGH_SET(pcm_read_ctx, (int)block_size, 0)
     }
 
     if (block_size < 4) {
@@ -710,7 +710,7 @@ int runmsadpcmdecoder(aml_audio_dec_t *audec, pcm_read_ctl_t *pcm_read_ctx, unsi
 
     UsedDataLenSave = pcm_read_ctx->UsedDataLen;
     tmp = refill(audec, pcm_read_ctx, pwavebuf, block_size);
-    if (tmp < 0) {
+    if ((int)tmp < 0) {
         pcm_read_ctx->UsedDataLen = UsedDataLenSave;
         return -1;
 
@@ -737,7 +737,7 @@ enum SampleFormat {
     SAMPLE_FMT_NB               ///< Number of sample formats. DO NOT USE if dynamically linking to libavcodec
 };
 
-int runpcmdecoder(aml_audio_dec_t *audec, pcm_read_ctl_t *pcm_read_ctx, unsigned char *buf, int len)
+int runpcmdecoder(aml_audio_dec_t *audec, pcm_read_ctl_t *pcm_read_ctx, unsigned char *buf __unused, int len __unused)
 {
     int i/*, j*/;
     short *pcm_buf = (short*)wave_decoder_buffer[1].addr;
@@ -813,9 +813,9 @@ static int adpcm_decode_release(void)
 int audio_dec_decode(audio_decoder_operations_t *adec_ops, char *outbuf, int *outlen, char *inbuf, int inlen)
 {
     aml_audio_dec_t *audec = (aml_audio_dec_t *)(adec_ops->priv_data);
-    pcm_read_ctl_t pcm_read_ctl = {0};
-    pcm_read_init(&pcm_read_ctl, inbuf, inlen);
-    *outlen = adpcm_decode_frame(audec, &pcm_read_ctl, outbuf, *outlen);
+    pcm_read_ctl_t pcm_read_ctl;// = {0};
+    pcm_read_init(&pcm_read_ctl, (unsigned char *)inbuf, inlen);
+    *outlen = adpcm_decode_frame(audec, &pcm_read_ctl, (unsigned char *)outbuf, *outlen);
     return pcm_read_ctl.UsedDataLen;
 
 }
@@ -827,13 +827,13 @@ int audio_dec_init(audio_decoder_operations_t *adec_ops)
     return 0;
 }
 
-int audio_dec_release(audio_decoder_operations_t *adec_ops)
+int audio_dec_release(audio_decoder_operations_t *adec_ops __unused)
 {
     adpcm_decode_release();
     return 0;
 }
 
-int audio_dec_getinfo(audio_decoder_operations_t *adec_ops, void *pAudioInfo)
+int audio_dec_getinfo(audio_decoder_operations_t *adec_ops __unused, void *pAudioInfo __unused)
 {
     return 0;
 }

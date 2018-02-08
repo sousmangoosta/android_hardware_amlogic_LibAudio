@@ -388,7 +388,7 @@ uint8_t window_grouping_info(NeAACDecStruct *hDecoder, ic_stream *ics)
 }
 
 /* iquant() *
-/* output = sign(input)*abs(input)^(4/3) */
+// output = sign(input)*abs(input)^(4/3) */
 /**/
 static INLINE real_t iquant(int16_t q, const real_t *tab, uint8_t *error)
 {
@@ -506,9 +506,9 @@ ALIGN static const real_t pow2sf_tab[] = {
   - Within a scalefactor window band, the coefficients are in ascending
     spectral order.
 */
-static uint8_t quant_to_spec(NeAACDecStruct *hDecoder,
+static uint8_t quant_to_spec(NeAACDecStruct *hDecoder __unused,
                              ic_stream *ics, int16_t *quant_data,
-                             real_t *spec_data, uint16_t frame_len)
+                             real_t *spec_data, uint16_t frame_len __unused)
 {
     ALIGN static const real_t pow2_table[] = {
         COEF_CONST(1.0),

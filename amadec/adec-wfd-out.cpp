@@ -20,7 +20,7 @@ namespace android
 #else
 #define EXTERN_TAG
 #endif
-#define  LOG_TAG    "wfd-output"
+//#define  LOG_TAG    "wfd-output"
 #define adec_print(...) __android_log_print(ANDROID_LOG_INFO,LOG_TAG,__VA_ARGS__)
 
 // default using tinyalsa
@@ -90,7 +90,7 @@ static float get_android_stream_volume()
 	AudioSystem::getOutputSamplingRate(&sr,AUDIO_STREAM_MUSIC);
 	if(sr > 0){
 		audio_io_handle_t handle = -1;		
-		handle = 	AudioSystem::getOutput(AUDIO_STREAM_MUSIC,
+		/*handle = 	AudioSystem::getOutput(AUDIO_STREAM_MUSIC,
 									48000,
 									AUDIO_FORMAT_PCM_16_BIT,
 									AUDIO_CHANNEL_OUT_STEREO,
@@ -99,7 +99,7 @@ static float get_android_stream_volume()
 #else	//JB...			
 							AUDIO_OUTPUT_FLAG_PRIMARY
 #endif	                            
-		);
+		);*/
 		if(handle > 0){
 			if(AudioSystem::getStreamVolume(media_type,&vol,handle) == 	NO_ERROR){
 				last_vol = vol;
@@ -118,7 +118,7 @@ static void apply_stream_volume(float vol,char *buf,int size)
 {
 	int i;
 	short *sample = (short*)buf;
-	for(i = 0;i < size/sizeof(short);i++)
+	for (i = 0; i < (int)(size/sizeof(short)); i++)
 		sample[i] = vol*sample[i];
 }
 #endif
@@ -151,7 +151,7 @@ static int  get_aml_card(){
 	pd = strstr(read_buf, "AML");
 	card = *(pd - 3) - '0';
 
-OUT:
+//OUT:
 	free(read_buf);
 	close(fd);
 	return card;

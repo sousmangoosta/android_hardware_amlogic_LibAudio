@@ -130,7 +130,7 @@ struct aml_audio_dec {
     message_pool_t message_pool;
     audio_decoder_operations_t *adec_ops;//non audiodsp decoder operations
     int extradata_size;      ///< extra data size
-    char extradata[AUDIO_EXTRA_DATA_SIZE];
+    char extradata[4096];
     audio_session_t SessionID;
     int format_changed_flag;
     unsigned dspdec_not_supported;//check some profile that audiodsp decoder can not support,we switch to arm decoder
@@ -224,7 +224,7 @@ typedef struct {
     int codec_id;         //original codecid corespingding to ffmepg
     int handle;        ///< codec device handler
     int extradata_size;      ///< extra data size
-    char extradata[AUDIO_EXTRA_DATA_SIZE];
+    char extradata[4096];
     int SessionID;
     int dspdec_not_supported;//check some profile that audiodsp decoder can not support,we switch to arm decoder
     int droppcm_flag;               // drop pcm flag, if switch audio (1)

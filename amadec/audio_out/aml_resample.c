@@ -14,9 +14,11 @@
 #include "Amsysfsutils.h"
 #include "amconfigutils.h"
 
+#define LOG_TAG "aml-resample"
 
-af_resampe_ctl_t af_resampler_ctx = {0};
+af_resampe_ctl_t af_resampler_ctx;//{0};
 static int pcmfd = -1;
+/*
 static int get_sysfs_int(const char *path)
 {
     int fd;
@@ -58,7 +60,7 @@ static int  get_sysfs_str(const char *path, char *valstr, int size)
 {
     return amsysfs_get_sysfs_str(path, valstr, size);
 }
-
+*/
 
 int af_get_resample_enable_flag()
 {
@@ -86,7 +88,7 @@ void af_resample_linear_init(struct aml_audio_dec *audec)
     af_resampe_ctl_t *paf_resampe_ctl;
     paf_resampe_ctl = &af_resampler_ctx;
     memset(paf_resampe_ctl, 0, sizeof(af_resampe_ctl_t));
-    adec_print("af_resample_linear_init 140821-1407");
+    //adec_print("af_resample_linear_init 140821-1407");
     audec->pcrtsync_enable = 1;
     if (property_get("media.libplayer.pcrtsync_enable", value, NULL) > 0) {
         if (!strcmp(value, "0") || !strcmp(value, "false")) {
@@ -115,30 +117,30 @@ void af_resample_linear_init(struct aml_audio_dec *audec)
         if (pcmfd == -1) {
             pcmfd = open("/data/tmp/pcmdump.dat", O_CREAT | O_RDWR, 0666);
             if (pcmfd < 0) {
-                adec_print("creat pcmdump failed!fd=%d\n", pcmfd);
+                //adec_print("creat pcmdump failed!fd=%d\n", pcmfd);
             }
         }
-        adec_print("## pcrmaster enable resample,tsync_enable:%d,  fill_trackzero_thrsh:%d, ! --\n", audec->pcrtsync_enable, audec->fill_trackzero_thrsh);
+        //adec_print("## pcrmaster enable resample,tsync_enable:%d,  fill_trackzero_thrsh:%d, ! --\n", audec->pcrtsync_enable, audec->fill_trackzero_thrsh);
     }
 }
 
 void af_resample_linear_stop(struct aml_audio_dec *audec)
 {
-    adec_print("[%s:%d]", __FUNCTION__, __LINE__);
+    //adec_print("[%s:%d]", __FUNCTION__, __LINE__);
     if (audec->tsync_mode == TSYNC_MODE_PCRMASTER) {
         amsysfs_set_sysfs_int("sys/class/amaudio/enable_resample", 0);
         if (pcmfd >= 0) {
             close(pcmfd);
             pcmfd = -1;
         }
-        adec_print("## pcrmaster recovery enable_resample! --\n");
+        //adec_print("## pcrmaster recovery enable_resample! --\n");
     }
 }
 
 static int dsp_pcm_read(aml_audio_dec_t*audec, char *data_in, int len)
 {
     int pcm_ret = 0, pcm_cnt_bytes = 0;
-    int wait_times = 0;
+    //int wait_times = 0;
     while (pcm_cnt_bytes < len) {
         pcm_ret = audec->adsp_ops.dsp_read(&audec->adsp_ops, data_in + pcm_cnt_bytes, len - pcm_cnt_bytes);
         if (pcm_ret <= 0) { //indicate there is no data in dsp_buf,still try to read more data:
@@ -160,11 +162,11 @@ static int dsp_pcm_read(aml_audio_dec_t*audec, char *data_in, int len)
     audec->pcm_bytes_readed += pcm_cnt_bytes;
     return pcm_cnt_bytes / sizeof(short);
 }
-
+/*
 static int pcrmaster_dsp_pcm_read(aml_audio_dec_t*audec, char *data_in, int len)
 {
     int pcm_ret = 0, pcm_cnt_bytes = 0;
-    int wait_times = 0;
+    //int wait_times = 0;
     while (pcm_cnt_bytes < len) {
         pcm_ret = audec->adsp_ops.dsp_read(&audec->adsp_ops, data_in + pcm_cnt_bytes, len - pcm_cnt_bytes);
         if (pcm_ret <= 0) { //indicate there is no data in dsp_buf,still try to read more data:
@@ -186,7 +188,7 @@ static int pcrmaster_dsp_pcm_read(aml_audio_dec_t*audec, char *data_in, int len)
     audec->pcm_bytes_readed += pcm_cnt_bytes;
     return pcm_cnt_bytes;
 }
-
+*/
 
 void af_resample_api(char* buffer, unsigned int * size, int Chnum, aml_audio_dec_t* audec, int enable, int delta);
 
@@ -263,7 +265,7 @@ static int audiodsp_set_pcm_resample_delta(int resample_num_delta)
     if (utils_fd >= 0) {
         ret = ioctl(utils_fd, AMAUDIO_IOC_SET_RESAMPLE_DELTA, resample_num_delta);
         if (ret < 0) {
-            adec_print(" AMAUDIO_IOC_SET_RESAMPLE_DELTA failed\n");
+            //adec_print(" AMAUDIO_IOC_SET_RESAMPLE_DELTA failed\n");
             close(utils_fd);
             return -1;
         }
@@ -360,7 +362,7 @@ void  af_resample_process_linear_inner(af_resampe_ctl_t *paf_resampe_ctl, short 
     int NumSampsPerCh_in = (*NumSamp_in) / NumCh;
     int NumSampsPerCh_Pre = paf_resampe_ctl->ResevedSampsValid / NumCh;
 
-    int   NumSampsPerCh_out;
+    //int   NumSampsPerCh_out;
     short buf16_in[MAX_NUMSAMPS_PERCH];
     short buf16_in_valid;
     short *pPreSamps = paf_resampe_ctl->ResevedBuf;
@@ -459,6 +461,7 @@ extern int android_reset_track(struct aml_audio_dec* audec);
  *  try to read as much data as len from dsp buffer
  */
 
+/*
 static void dump_pcm_bin(char *path, char *buf, int size)
 {
     FILE *fp = fopen(path, "ab+");
@@ -467,19 +470,20 @@ static void dump_pcm_bin(char *path, char *buf, int size)
         fclose(fp);
     }
 }
+*/
 
 #define  RESAMPLE_FRAMES  128
 void af_resample_api(char* buffer, unsigned int * size, int Chnum, aml_audio_dec_t* audec, int enable, int delta)
 {
-    short data_in[RESAMPLE_FRAMES * 2];
+    //short data_in[RESAMPLE_FRAMES * 2];
     short *pbuf;
     int resample_enable;
-    int resample_type;
+    //int resample_type;
     int resample_delta;
     int sample_read;
     int num_sample = 0;
-    int i, j, k, h;
-    int request = *size;
+    int j, k;
+    //int request = *size;
     int dsp_read = 0;
     static int last_resample_enable = 0;
     static int last_delta = 0;
@@ -501,7 +505,7 @@ void af_resample_api(char* buffer, unsigned int * size, int Chnum, aml_audio_dec
     resample_delta = delta;
 
     if (last_resample_enable != resample_enable  || last_delta != delta) {
-        adec_print("resample changed: %s,delta %d\n", resample_enable ? "Enabled" : "Disabled", delta);
+        //adec_print("resample changed: %s,delta %d\n", resample_enable ? "Enabled" : "Disabled", delta);
         last_resample_enable = resample_enable;
         last_delta = delta;
     }
@@ -512,7 +516,7 @@ void af_resample_api(char* buffer, unsigned int * size, int Chnum, aml_audio_dec
             *size = *size * RESAMPLE_FRAMES / (RESAMPLE_FRAMES - resample_delta);
             *size &= ~(2 * Chnum - 1);
         }
-        sample_read = dsp_pcm_read(audec, pbuf, *size); // return mono sample number
+        sample_read = dsp_pcm_read(audec, (char *)pbuf, *size); // return mono sample number
         dsp_read += sample_read;
         //adec_print("dsp read %d\n", sample_read);
         k = 0;
@@ -547,8 +551,8 @@ void af_resample_api(char* buffer, unsigned int * size, int Chnum, aml_audio_dec
 
 
         num_sample  = k * sizeof(short) * Chnum;
-        if (num_sample < *size) {
-            sample_read = dsp_pcm_read(audec, pbuf, *size - num_sample);
+        if (num_sample < (int)*size) {
+            sample_read = dsp_pcm_read(audec, (char *)pbuf, *size - num_sample);
             dsp_read += sample_read;
             if (sample_read > 0) {
                 memcpy((short*)buffer + k * Chnum, pbuf, sample_read * sizeof(short));
@@ -558,7 +562,7 @@ void af_resample_api(char* buffer, unsigned int * size, int Chnum, aml_audio_dec
         *size = k * sizeof(short) * Chnum;
         //adec_print("resample end ... %d\n", *size);
     } else {
-        sample_read = dsp_pcm_read(audec, pbuf, *size - num_sample);
+        sample_read = dsp_pcm_read(audec, (char *)pbuf, *size - num_sample);
         memcpy(buffer, pbuf, sample_read * sizeof(short));
         *size = sample_read * sizeof(short);
     }
@@ -573,7 +577,7 @@ void af_resample_api_normal(char *buffer, unsigned int *size, int Chnum, aml_aud
     short data_in[MAX_NUMSAMPS_PERCH * DEFALT_NUMCH], *data_out;
     short outbuftmp16[MAX_NUMSAMPS_PERCH * DEFALT_NUMCH];
     int NumSamp_in, NumSamp_out, NumCh, NumSampRequir = 0;
-    static int print_flag = 0;
+    //static int print_flag = 0;
     int outbuf_offset = 0;
     int dsp_format_changed_flag = 0;
     static int pcm_left_len = -1;
@@ -692,10 +696,10 @@ resample_out:
         pcm_left_len = audiodsp_get_pcm_left_len();
     }
     if (pcm_left_len >= 0) {
-        if (pcm_left_len > (*size)) {
+        if (pcm_left_len > (int)(*size)) {
             pcm_left_len -= (*size);
             memset((char*)(data_out), 0, *size);
-        } else if (pcm_left_len <= (*size)) {
+        } else if (pcm_left_len <= (int)(*size)) {
             memset((char*)(data_out), 0, pcm_left_len);
             pcm_left_len = -1;
 

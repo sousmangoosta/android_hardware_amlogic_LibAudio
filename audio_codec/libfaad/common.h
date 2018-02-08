@@ -242,7 +242,7 @@ extern "C" {
     typedef float float32_t;
 #endif
 
-#if STDC_HEADERS
+#if 1//STDC_HEADERS
 # include <string.h>
 #else
 # if !HAVE_STRCHR

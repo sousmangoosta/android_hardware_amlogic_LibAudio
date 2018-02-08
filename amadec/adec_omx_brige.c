@@ -20,7 +20,7 @@
 
 int find_omx_lib(aml_audio_dec_t *audec)
 {
-    audio_decoder_operations_t *adec_ops = audec->adec_ops;
+    //audio_decoder_operations_t *adec_ops = audec->adec_ops;
     audec->StageFrightCodecEnableType = 0;
     audec->parm_omx_codec_init = NULL;
     audec->parm_omx_codec_read = NULL;
@@ -97,27 +97,28 @@ int find_omx_lib(aml_audio_dec_t *audec)
     return audec->StageFrightCodecEnableType;
 }
 
+#define AVCODEC_MAX_AUDIO_FRAME_SIZE 500*1024
 static char pcm_buf_tmp[AVCODEC_MAX_AUDIO_FRAME_SIZE];//max frame size out buf
 void omx_codec_Release();
 extern int read_buffer(unsigned char *buffer, int size);
 
 void *audio_decode_loop_omx(void *args)
 {
-    int ret;
+    //int ret;
     aml_audio_dec_t *audec;
     audio_out_operations_t *aout_ops;
     audio_decoder_operations_t *adec_ops;
 
     int nNextFrameSize = 0; //next read frame size
     int nAudioFormat;
-    char *inbuf = NULL;//real buffer
+    //char *inbuf = NULL;//real buffer
     int dlen = 0;//decode size one time
     int outlen = 0;
     char *outbuf = pcm_buf_tmp, *outbuf_raw;
     int outlen_raw = 0;
     int rawoutput_enable;
     buffer_stream_t *g_bst, *g_bst_raw;
-    AudioInfo  g_AudioInfo = {0};
+    AudioInfo  g_AudioInfo = {0, 0, 0, 0};
     adec_print("\n\naudio_decode_loop_omx start!\n");
 
     audec = (aml_audio_dec_t *)args;
@@ -144,13 +145,13 @@ void *audio_decode_loop_omx(void *args)
     }
     audec->OmxFirstFrameDecoded = 0;
     while (1) {
-exit_decode_loop:
+//exit_decode_loop:
         if (audec->exit_decode_thread) { //detect quit condition
             break;
         }
         outbuf = pcm_buf_tmp;
         outlen = AVCODEC_MAX_AUDIO_FRAME_SIZE;
-        (*audec->parm_omx_codec_read)(audec, outbuf, &outlen, &audec->exit_decode_thread);
+        (*audec->parm_omx_codec_read)(audec, (unsigned char *)outbuf, (unsigned int *)&outlen, &audec->exit_decode_thread);
 
         outlen_raw = 0;
         if (audec->StageFrightCodecEnableType == OMX_ENABLE_CODEC_DTSHD ||
@@ -259,7 +260,7 @@ void start_decode_thread_omx(aml_audio_dec_t *audec)
     }
     audec->sn_threadid = tid;
     pthread_setname_np(tid, "AmadecDecodeLP");
-    adec_print("Create <audio_decode_loop_omx> thread success! tid = %d\n", tid);
+    adec_print("Create <audio_decode_loop_omx> thread success! tid = %ld\n", tid);
 
     while ((!audec->need_stop) && (!audec->OmxFirstFrameDecoded)) {
         amthreadpool_thread_usleep(50);
@@ -273,7 +274,7 @@ void start_decode_thread_omx(aml_audio_dec_t *audec)
 void stop_decode_thread_omx(aml_audio_dec_t *audec)
 {
     audec->exit_decode_thread = 1;
-    int ret = amthreadpool_pthread_join(audec->sn_threadid, NULL);
+    amthreadpool_pthread_join(audec->sn_threadid, NULL);
     //audec->exit_decode_thread = 0;
     audec->sn_threadid = -1;
     audec->sn_getpackage_threadid = -1;

@@ -89,6 +89,36 @@ static const int cos1sin1tab64[34] = {
     0x5a82799a, 0x2d413ccd,
 };
 
+static  Word64 MADD64(Word64 sum64, int x, int y)
+{
+	sum64 += (long long)x * y;
+	return sum64;
+}
+
+static  short CLIPTOSHORT(int x)
+{
+    int sign;
+
+    /* clip to [-32768, 32767] */
+    sign = x >> 31;
+    if (sign != (x >> 15)) {
+        x = sign ^((1 << 15) - 1);
+    }
+
+    return (short)x;
+}
+
+static  int FASTABS(int x)
+{
+    int sign;
+
+    sign = x >> (sizeof(int) * 8 - 1);
+    x ^= sign;
+    x -= sign;
+
+    return x;
+}
+
 /**************************************************************************************
  * Function:    PreMultiply64
  *

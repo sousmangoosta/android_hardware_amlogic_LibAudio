@@ -163,7 +163,7 @@ int AACFindSyncWord(unsigned char *buf, int nBytes)
     }
 }
 
-int AACFindSyncWordRaw(unsigned char *buf, int nBytes)
+int AACFindSyncWordRaw(unsigned char *buf __unused, int nBytes __unused)
 {
     int sync0 = 0;
     int sync1 = 0;

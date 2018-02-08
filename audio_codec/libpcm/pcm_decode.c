@@ -147,17 +147,17 @@ static int ulaw2linear(unsigned char u_val)
  * @param avctx the codec context
  * @param header pointer to the first four bytes of the data packet
  */
-static int pcm_bluray_pheader(pcm_read_ctl_t *pcm_read_ctl, aml_audio_dec_t *audec, char *header, int *bps)
+static int pcm_bluray_pheader(pcm_read_ctl_t *pcm_read_ctl __unused, aml_audio_dec_t *audec, char *header, int *bps)
 {
     audio_decoder_operations_t *adec_ops = (audio_decoder_operations_t *)audec->adec_ops;
     pcm_priv_data_t *pPcm_priv_data = (pcm_priv_data_t *)adec_ops->priv_dec_data;
 
     uint8_t bits_per_samples[4] = { 0, 16, 20, 24 };
-    uint32_t channel_layouts[16] = {
-        0, CH_LAYOUT_MONO, 0, CH_LAYOUT_STEREO, CH_LAYOUT_SURROUND,
-        CH_LAYOUT_2_1, CH_LAYOUT_4POINT0, CH_LAYOUT_2_2, CH_LAYOUT_5POINT0,
-        CH_LAYOUT_5POINT1, CH_LAYOUT_7POINT0, CH_LAYOUT_7POINT1, 0, 0, 0, 0
-    };
+    //uint32_t channel_layouts[16] = {
+    //    0, CH_LAYOUT_MONO, 0, CH_LAYOUT_STEREO, CH_LAYOUT_SURROUND,
+    //    CH_LAYOUT_2_1, CH_LAYOUT_4POINT0, CH_LAYOUT_2_2, CH_LAYOUT_5POINT0,
+    //    CH_LAYOUT_5POINT1, CH_LAYOUT_7POINT0, CH_LAYOUT_7POINT1, 0, 0, 0, 0
+    //};
     uint8_t channels[16] = {
         0, 1, 0, 2, 3, 3, 4, 4, 5, 6, 7, 8, 0, 0, 0, 0
     };
@@ -288,21 +288,21 @@ static int parse_wifi_display_pcm_header(aml_audio_dec_t *audec, char *header, i
     static  type bytestream_get_ ## name(const uint8_t **b){\
         (*b) += bytes;\
         return read(*b - bytes);\
-    }\
+    }/*\
     static  void bytestream_put_ ##name(uint8_t **b, const type value){\
         write(*b, value);\
         (*b) += bytes;\
-    }
+    }*/
 #define DEF(name, bytes, read, write)     DEF_T(unsigned int, name, bytes, read, write)
 
 
-DEF(le32, 4, AV_RL32, AV_WL32)
-DEF(le24, 3, AV_RL24, AV_WL24)
-DEF(le16, 2, AV_RL16, AV_WL16)
-DEF(be32, 4, AV_RB32, AV_WB32)
-DEF(be24, 3, AV_RB24, AV_WB24)
+//DEF(le32, 4, AV_RL32, AV_WL32)
+//DEF(le24, 3, AV_RL24, AV_WL24)
+//DEF(le16, 2, AV_RL16, AV_WL16)
+//DEF(be32, 4, AV_RB32, AV_WB32)
+//DEF(be24, 3, AV_RB24, AV_WB24)
 DEF(be16, 2, AV_RB16, AV_WB16)
-DEF(byte, 1, AV_RB8 , AV_WB8)
+//DEF(byte, 1, AV_RB8 , AV_WB8)
 
 #define DECODE(type, endian, src, dst, n, shift, offset) \
     dst_##type = (type*)dst; \
@@ -397,8 +397,8 @@ static int pcm_init(aml_audio_dec_t *audec)
 static int check_frame_size(pcm_read_ctl_t *pcm_read_ctl, aml_audio_dec_t *audec , int *bps)
 {
     int index;
-    int find_header_cnt = 0, first_header_pos = -1;
-    int size ;
+    //int find_header_cnt = 0, first_header_pos = -1;
+    //int size ;
     int header, frame_size;
     int first_head_pos = 0;
     audio_decoder_operations_t *adec_ops = (audio_decoder_operations_t *)audec->adec_ops;
@@ -425,7 +425,7 @@ static int check_frame_size(pcm_read_ctl_t *pcm_read_ctl, aml_audio_dec_t *audec
     first_head_pos = pcm_read_ctl->UsedDataLen - 4;
     PRINTF("[%s %d]First BluRay Header offset=%d\n", __FUNCTION__, __LINE__, first_head_pos);
     //---------------------------------------------
-    frame_size = pcm_bluray_pheader(pcm_read_ctl, audec, pPcm_priv_data->pcm_buffer, bps);
+    frame_size = pcm_bluray_pheader(pcm_read_ctl, audec, (char *)pPcm_priv_data->pcm_buffer, bps);
     if (frame_size > 0) {
         PRINTF("[%s %d]frame_size from parser:%d\n", __FUNCTION__, __LINE__, frame_size);
         CHECK_DATA_ENOUGH(pcm_read_ctl, frame_size, 4);
@@ -491,19 +491,19 @@ static inline int16_t av_clip_int16(int a)
     }
 }
 
-static int pcm_decode_frame(pcm_read_ctl_t *pcm_read_ctl, unsigned char *buf, int len, aml_audio_dec_t *audec)
+static int pcm_decode_frame(pcm_read_ctl_t *pcm_read_ctl, unsigned char *buf, int len __unused, aml_audio_dec_t *audec)
 {
     short *sample;
     unsigned char *src;
-    int size = 0, n, i, j, bps = 16, wifi_display_drop_header = 0;
+    int size = 0, n, i, j, bps = 16;
     int sample_size;
     unsigned int header;
     int16_t *dst_int16_t;
-    int32_t *dst_int32_t;
-    int64_t *dst_int64_t;
-    uint16_t *dst_uint16_t;
-    uint32_t *dst_uint32_t;
-    int frame_size;
+    //int32_t *dst_int32_t;
+    //int64_t *dst_int64_t;
+    //uint16_t *dst_uint16_t;
+    //uint32_t *dst_uint32_t;
+    int frame_size = 0;
     audio_decoder_operations_t *adec_ops = (audio_decoder_operations_t *)audec->adec_ops;
     pcm_priv_data_t *pPcm_priv_data = (pcm_priv_data_t *)adec_ops->priv_dec_data;
 
@@ -511,7 +511,7 @@ static int pcm_decode_frame(pcm_read_ctl_t *pcm_read_ctl, unsigned char *buf, in
     src = pPcm_priv_data->pcm_buffer;
 
     if (audec->format == AFORMAT_PCM_BLURAY) {
-        int i, j;
+        int i, j = 0;
         int tmp_buf[10] = {0};
         if (!pPcm_priv_data->frame_size_check_flag) {
             frame_size = check_frame_size(pcm_read_ctl, audec, &bps);
@@ -534,7 +534,7 @@ static int pcm_decode_frame(pcm_read_ctl_t *pcm_read_ctl, unsigned char *buf, in
                 while (!pPcm_priv_data->BlurayHeaderCheckDisable) {
                     header = (pPcm_priv_data->pcm_buffer[0] << 24) | (pPcm_priv_data->pcm_buffer[1] << 16) | \
                              (pPcm_priv_data->pcm_buffer[2] << 8)  | (pPcm_priv_data->pcm_buffer[3]);
-                    if (header == pPcm_priv_data->pcm_bluray_header) {
+                    if ((int)header == pPcm_priv_data->pcm_bluray_header) {
                         break;
                     }
                     pPcm_priv_data->pcm_buffer[0] = pPcm_priv_data->pcm_buffer[1];
@@ -546,12 +546,12 @@ static int pcm_decode_frame(pcm_read_ctl_t *pcm_read_ctl, unsigned char *buf, in
                     }
                 }
 #else
-                if (!pcm_read(pcm_read_ctl, pPcm_priv_data->pcm_buffer, 4)) {
+                if (!pcm_read(pcm_read_ctl, (char *)pPcm_priv_data->pcm_buffer, 4)) {
                     return 0;
                 }
 #endif
 
-                frame_size = pcm_bluray_pheader(pPcm_priv_data, audec, pPcm_priv_data->pcm_buffer, &bps);
+                frame_size = pcm_bluray_pheader((pcm_read_ctl_t *)pPcm_priv_data, audec, (char *)pPcm_priv_data->pcm_buffer, &bps);
                 pPcm_priv_data->bit_per_sample = bps;
                 if (frame_size < 960 || frame_size > 17280) {
                     PRINTF("STREAM_ERR:illegal blueray frame size \n");
@@ -603,7 +603,7 @@ static int pcm_decode_frame(pcm_read_ctl_t *pcm_read_ctl, unsigned char *buf, in
                 }
             }
         } else if (pPcm_priv_data->bit_per_sample == 24 || pPcm_priv_data->bit_per_sample == 20) {
-            int k;
+            //int k;
             memset(tmp_buf, 0, sizeof(tmp_buf));
             if (pPcm_priv_data->pcm_channels == 1) {
                 for (i = 0, j = 0; i < frame_size;) {
@@ -642,7 +642,7 @@ static int pcm_decode_frame(pcm_read_ctl_t *pcm_read_ctl, unsigned char *buf, in
         }
 
         if (pPcm_priv_data->pcm_buffer[0] == 0xa0) {
-            frame_size = parse_wifi_display_pcm_header(audec, pPcm_priv_data->pcm_buffer, &bps);
+            frame_size = parse_wifi_display_pcm_header(audec, (char *)pPcm_priv_data->pcm_buffer, &bps);
             if (!pcm_read(pcm_read_ctl, pPcm_priv_data->pcm_buffer, frame_size)) {
                 pcm_read_ctl->UsedDataLen -= Wifi_Display_Private_Header_Size;
                 return -1;
@@ -676,7 +676,7 @@ static int pcm_decode_frame(pcm_read_ctl_t *pcm_read_ctl, unsigned char *buf, in
     }
 
     unsigned byte_to_read = pcm_buffer_size;
-    while (pcm_read_ctl->ValidDataLen < byte_to_read) {
+    while (pcm_read_ctl->ValidDataLen < (int)byte_to_read) {
         byte_to_read = byte_to_read >> 1;
     }
     size = pcm_read(pcm_read_ctl, pPcm_priv_data->pcm_buffer, byte_to_read);
@@ -750,9 +750,9 @@ int audio_dec_init(audio_decoder_operations_t *adec_ops)
 int audio_dec_decode(audio_decoder_operations_t *adec_ops, char *outbuf, int *outlen, char *inbuf, int inlen)
 {
     aml_audio_dec_t *audec = (aml_audio_dec_t *)(adec_ops->priv_data);
-    pcm_read_ctl_t pcm_read_ctl = {0};
-    pcm_read_init(&pcm_read_ctl, inbuf, inlen);
-    *outlen = pcm_decode_frame(&pcm_read_ctl, outbuf, *outlen, audec);
+    pcm_read_ctl_t pcm_read_ctl;// = {0};
+    pcm_read_init(&pcm_read_ctl, (unsigned char *)inbuf, inlen);
+    *outlen = pcm_decode_frame(&pcm_read_ctl, (unsigned char *)outbuf, *outlen, audec);
     return pcm_read_ctl.UsedDataLen;
 
 }

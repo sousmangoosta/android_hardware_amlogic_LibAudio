@@ -51,10 +51,10 @@ void rm_error_default(void* pUserError, HX_RESULT err, const char* msg)
     if (msg) {
         raac_print(
             "rm_error_default(pUserError=0x%08x,err=0x%08x,msg=%s\n",
-            pUserError, err, msg);
+            (int)pUserError, err, msg);
     } else {
         raac_print(
             "rm_error_default(pUserError=0x%08x,err=0x%08x\n",
-            pUserError, err);
+            (int)pUserError, err);
     }
 }

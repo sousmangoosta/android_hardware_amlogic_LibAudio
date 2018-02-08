@@ -12,6 +12,7 @@
 #include <log-print.h>
 #include <amthreadpool.h>
 
+#define LOG_TAG "dts_transenc_api"
 pcm51_encoded_info_t        dts_transenc_info;
 static int                          dts_init_flag = 0;
 char                                        *stream;                        //input raw pcm
@@ -19,7 +20,7 @@ char                       *output;
 static int write_success_flag = 1;
 unsigned int                        input_size;
 unsigned int                        output_size;
-static int nNumFrmCoded;
+//static int nNumFrmCoded;
 //sjw added ; param set by shaoshuai
 typedef struct {
     int (*enc_init)(pcm51_encoded_info_t dts_transenc_info, unsigned int *input_size, unsigned int *output_size);
@@ -106,7 +107,7 @@ int dts_transenc_process_frame()
         fclose(fp1);
 #endif
 
-        rv = enc_ops.enc_encode(dts_transenc_info, stream, output, (unsigned int)&output_size);//encode frame
+        rv = enc_ops.enc_encode(dts_transenc_info, stream, (unsigned char *)output, (unsigned int)&output_size);//encode frame
 #ifdef DUMP_FILE
         FILE *fp2 = fopen("/mnt/sda4/a.dts", "a+");
         fwrite(output, 1, output_size, fp2);

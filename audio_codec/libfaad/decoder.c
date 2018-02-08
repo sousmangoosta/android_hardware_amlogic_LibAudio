@@ -140,16 +140,17 @@ static const int pi_sample_rates[16] = {
     96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050,
     16000, 12000, 11025, 8000,  7350,  0,     0,     0
 };
+#if 0
 static int LOASSyncInfo(uint8_t p_header[LOAS_HEADER_SIZE], unsigned int *pi_header_size)
 {
     *pi_header_size = 3;
     return ((p_header[1] & 0x1f) << 8) + p_header[2];
 }
-
+#endif
 static int Mpeg4GAProgramConfigElement(bitfile *ld,mpeg4_cfg_t *p_cfg)
 {
     /* TODO compute channels count ? */
-    int i_tag = faad_getbits(ld, 4);
+    //int i_tag = faad_getbits(ld, 4);
     //if (i_tag != 0x05) {
     //    return -1;
     //}
@@ -567,7 +568,7 @@ static int LatmReadStreamMuxConfiguration(latm_mux_t *m, bitfile *ld)
 }
 static int LOASParse(uint8_t *p_buffer, int i_buffer, decoder_sys_t *p_sys)
 {
-    bitfile ld = {0};
+    bitfile ld;// = {0};
     int i_accumulated = 0;
     const latm_stream_t *st;
     faad_initbits(&ld, p_buffer, i_buffer);
@@ -882,7 +883,7 @@ unsigned char NEAACDECAPI NeAACDecSetConfiguration(NeAACDecHandle hpDecoder,
     return 0;
 }
 
-
+#if 0
 static int latmCheck(latm_header *latm, bitfile *ld)
 {
     uint32_t good = 0, bad = 0, bits, m;
@@ -903,11 +904,12 @@ static int latmCheck(latm_header *latm, bitfile *ld)
 
     return (good > 0);
 }
-
+#endif
 #define SKIP_LATM_BYTE  16*4*2
-static int  latm_check_internal(unsigned char *buffer, unsigned buffer_size, unsigned *byte_cost)
+#if 0
+static int latm_check_internal(unsigned char *buffer, unsigned buffer_size, unsigned *byte_cost)
 {
-    latm_header l = {0};
+    latm_header l;// = {0};
     int is_latm = 0;
     bitfile ld;
     int byte_consumed = 0;
@@ -927,11 +929,11 @@ retry:
     if (is_latm == 0 && byte_left > 400) {
         goto retry;
     }
-exit:
+//exit:
     *byte_cost =    byte_consumed;
     return  is_latm;
 }
-
+#endif
 long NEAACDECAPI NeAACDecInit(NeAACDecHandle hpDecoder,
                               unsigned char *buffer,
                               unsigned long buffer_size,
@@ -949,7 +951,7 @@ long NEAACDECAPI NeAACDecInit(NeAACDecHandle hpDecoder,
 #ifdef NEW_CODE_CHECK_LATM
     int i_frame_size;
     if (buffer_size > sizeof(temp_bufer)) {
-        LATM_LOG("init input buffer size tooo big %d, buffer size %d \n", buffer_size, sizeof(temp_bufer));
+        //LATM_LOG("init input buffer size tooo big %lu, buffer size %lu \n", buffer_size, sizeof(temp_bufer));
         buffer_size = sizeof(temp_bufer);
     }
     if (buffer_size > 0) {
@@ -974,10 +976,9 @@ long NEAACDECAPI NeAACDecInit(NeAACDecHandle hpDecoder,
     *channels = 1;
     *samplerate = 0;
     *channels = 0;
-    int latm_audio = 0;
-    unsigned byte_cost = 0;
+    //int latm_audio = 0;
+    //unsigned byte_cost = 0;
     if (buffer != NULL) {
-        int is_latm;
         latm_header *l = &hDecoder->latm_config;
         faad_initbits(&ld, buffer, buffer_size);
 #ifdef NEW_CODE_CHECK_LATM
@@ -1034,7 +1035,7 @@ exit_check:
             st = &m->stream[m->i_streams - 1];
         }
         memset(l, 0, sizeof(latm_header));
-        if (st && st->i_extra || is_latm_external) {
+        if ((st && st->i_extra) || is_latm_external) {
             int32_t x;
 
             hDecoder->latm_header_present = 1;
@@ -1068,6 +1069,7 @@ exit_check:
             return x;
         } else
 #else
+        int is_latm;
         memset(l, 0, sizeof(latm_header));
         is_latm = latmCheck(l, &ld);
         l->inited = 0;
@@ -1124,7 +1126,7 @@ exit_check:
                 int adts_err = 0;
                 faad_log_info("[%s %d]guess it is a ADTS aac files and try to resync\n", __FUNCTION__, __LINE__);
                 faad_initbits(&ld, buffer, buffer_size);
-                for (ii = 0; ii < buffer_size; ii++) {
+                for (ii = 0; ii < (int)buffer_size; ii++) {
                     if ((faad_showbits(&ld, 16) & 0xfff6) != 0xFFF0) {
                         faad_getbits(&ld, 8
                                      DEBUGVAR(0, 0, ""));
@@ -1149,11 +1151,11 @@ exit_check:
                             return -1;
                         }
                         *channels = (adts.channel_configuration > 6) ? 2 : adts.channel_configuration;
-                        faad_log_info("[%s %d]resync adts info:FS/%d object_type/%d chnum/%d\n", __FUNCTION__, __LINE__, *samplerate, hDecoder->object_type, channels);
+                        faad_log_info("[%s %d]resync adts info:FS/%lu object_type/%d chnum/%d\n", __FUNCTION__, __LINE__, *samplerate, hDecoder->object_type, (int)channels);
                         break;
                     }
                 }
-                if (ii == buffer_size) {
+                if (ii == (int)buffer_size) {
                     faad_log_info("[%s %d]sync for adts frame failed\n", __FUNCTION__, __LINE__);
                     return -1;
                 }
@@ -1218,7 +1220,7 @@ int NEAACDECAPI NeAACDecInit2(NeAACDecHandle hpDecoder,
     int8_t rc;
     mp4AudioSpecificConfig mp4ASC;
     faad_log_info("enter NeAACDecInit2 \r\n");
-    faad_log_info("extra data size  %d\r\n", SizeOfDecoderSpecificInfo);
+    faad_log_info("extra data size  %lu\r\n", SizeOfDecoderSpecificInfo);
     if ((hDecoder == NULL)
         || (pBuffer == NULL)
         || (SizeOfDecoderSpecificInfo < 2)
@@ -1673,7 +1675,7 @@ static void conceal_output(NeAACDecStruct *hDecoder, uint16_t frame_len,
 static int multi_sub_frame(NeAACDecStruct *hDecoder)
 {
 #ifdef NEW_CODE_CHECK_LATM
-    int i_frame_size;
+    //int i_frame_size;
     decoder_sys_t *p_sys =  &hDecoder->dec_sys;
 
     if (hDecoder->latm_header_present && p_sys->latm.i_sub_frames > 1)
@@ -1693,14 +1695,14 @@ static void* aac_frame_decode(NeAACDecStruct *hDecoder,
     uint16_t i;
     uint8_t channels = 0;
     uint8_t output_channels = 0;
-    bitfile ld = {0};
+    bitfile ld;// = {0};
     uint32_t bitsconsumed;
     uint16_t frame_len;
     void *sample_buffer;
-    uint32_t startbit = 0, endbit = 0, payload_bits = 0;
     int b_multi_sub_frame;
     int mux_length = 0;
 #ifdef NEW_CODE_CHECK_LATM
+    uint32_t startbit = 0, endbit = 0, payload_bits = 0;
     int i_frame_size;
     decoder_sys_t *p_sys =  &hDecoder->dec_sys;
 #endif
@@ -1741,7 +1743,7 @@ static void* aac_frame_decode(NeAACDecStruct *hDecoder,
     }
 #ifdef NEW_CODE_CHECK_LATM
     if (buffer_size > sizeof(temp_bufer)) {
-        LATM_LOG("input buffer size tooo big %d, buffer size %d \n", buffer_size, sizeof(temp_bufer));
+        //LATM_LOG("input buffer size tooo big %lu, buffer size %lu \n", buffer_size, sizeof(temp_bufer));
         buffer_size = sizeof(temp_bufer);
     }
     if (buffer_size > 0) {
@@ -1771,7 +1773,7 @@ NEXT_CHECK:
             LATM_LOG("i_frame_size  error\n");
             return NULL;
         }
-        if (buffer_size < (LOAS_HEADER_SIZE + i_frame_size)) {
+        if ((int)buffer_size < (LOAS_HEADER_SIZE + i_frame_size)) {
             hInfo->error =  35;
             LATM_LOG("buffer size small then frame size,need more data\n");
             return NULL;
@@ -1844,7 +1846,7 @@ start_decode:
         }
         if (adts.aac_frame_length > buffer_size) {
             hInfo->error = 35; //more data needed
-            audio_codec_print("decoder need more data for adts frame,frame len %d,have %d \n", adts.aac_frame_length, buffer_size);
+            audio_codec_print("decoder need more data for adts frame,frame len %d,have %lu \n", adts.aac_frame_length, buffer_size);
             if (adts.aac_frame_length > 6 * 768) {
                 audio_codec_print("adts frame len exceed aac spec \n");
                 hInfo->error = 36;//
@@ -2082,7 +2084,8 @@ start_decode:
     if (b_multi_sub_frame && i_frame_size > 0 && sample_buffer_size == 0) {
 
         memcpy(hDecoder->sample_buffer_all,sample_buffer,hInfo->samples * 2);
-        hDecoder->sample_buffer_all += hInfo->samples * 2;
+        char * tmp = (char *)(hDecoder->sample_buffer_all);
+        tmp += hInfo->samples * 2;
         i_frame_size -= hInfo->bytesconsumed;
         buffer += hInfo->bytesconsumed;
         buffer_size -= hInfo->bytesconsumed;
@@ -2093,7 +2096,8 @@ start_decode:
     if (b_multi_sub_frame && sample_buffer_size == 0) {
         // calculate all sub_frames as one samples
         hInfo->samples = hInfo->samples * p_sys->latm.i_sub_frames;
-        hDecoder->sample_buffer_all -= hInfo->samples * 2;
+        char * tmp = (char *)(hDecoder->sample_buffer_all);
+        tmp -= hInfo->samples * 2;
         hInfo->bytesconsumed = mux_length;
         return hDecoder->sample_buffer_all;
     }

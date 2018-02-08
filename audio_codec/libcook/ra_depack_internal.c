@@ -387,10 +387,10 @@ HX_RESULT ra_depacki_unpack_substream_hdr(ra_depack_internal* pInt,
     return retVal;
 }
 
-HX_RESULT ra_depacki_unpack_raformat3(ra_depack_internal* pInt,
-                                      BYTE*               pBuf,
-                                      UINT32              ulLen,
-                                      ra_substream_hdr*   pHdr)
+HX_RESULT ra_depacki_unpack_raformat3(ra_depack_internal* pInt __unused,
+                                      BYTE*               pBuf __unused,
+                                      UINT32              ulLen __unused,
+                                      ra_substream_hdr*   pHdr __unused)
 {
     return HXR_NOTIMPL;
 }
@@ -1355,7 +1355,7 @@ void ra_depacki_clear_frag_buffer(ra_depack_internal* pInt,
     }
 }
 
-HX_RESULT ra_depacki_seek(ra_depack_internal* pInt, UINT32 ulTime)
+HX_RESULT ra_depacki_seek(ra_depack_internal* pInt, UINT32 ulTime __unused)
 {
     HX_RESULT retVal = HXR_FAIL;
 

@@ -66,7 +66,7 @@ static unsigned aac_timestamp = 0;
 static raac_decoder_info_t raac_dec_info ;
 static rm_info_t raac_info ;
 static char  file_header[AUDIO_EXTRA_DATA_SIZE];
-#pragma align_to(64,file_header)
+//#pragma align_to(64,file_header)
 static char *cur_read_ptr = file_header;
 
 void set_timestamp(unsigned val)
@@ -347,19 +347,19 @@ void rm_error(void* pError, HX_RESULT result, const char* pszMsg)
 {
     //dsp_mailbox_send(1,M1B_IRQ7_DECODE_FATAL_ERR, 1, NULL, 0);
     //trans_err_code(DECODE_FATAL_ERR);
-    raac_print("rm_error pError=0x%08x result=0x%08x msg=%s\n", pError, result, pszMsg);
+    raac_print("rm_error pError=0x%08x result=0x%08x msg=%s\n", (int)pError, result, pszMsg);
     //while(1);
 }
 //static int raac_decode_frame(unsigned char *buf, int maxlen, struct frame_fmt *fmt)
 int audio_dec_decode(audio_decoder_operations_t *adec_ops, char *outbuf, int *outlen, char *inbuf, int inlen)
 {
     HX_RESULT retVal = HXR_OK;
-    UINT32 ulBytesConsumed = 0;
-    UINT32 ulTotalConsumed = 0;
-    UINT32 ulBytesLeft     = 0;
-    UINT32 ulNumSamplesOut = 0;
-    UINT32 ulMaxSamples    = 0;
-    UINT32 out_data_len = 0;
+    //UINT32 ulBytesConsumed = 0;
+    //UINT32 ulTotalConsumed = 0;
+    //UINT32 ulBytesLeft     = 0;
+    //UINT32 ulNumSamplesOut = 0;
+    //UINT32 ulMaxSamples    = 0;
+    //UINT32 out_data_len = 0;
 
     if (inlen > 0) {
         int len = inlen - cook_input.buf_len;
@@ -383,7 +383,7 @@ int audio_dec_decode(audio_decoder_operations_t *adec_ops, char *outbuf, int *ou
             rm_parser_destroy_packet(raac_info.pParser, &raac_info.pPacket);
         }
         if (retVal != HXR_OK) {
-            raac_print("cook_decode_frame£º add packet failed\n");
+            raac_print("cook_decode_frame add packet failed\n");
             break;
         }
     }
@@ -407,7 +407,7 @@ int audio_dec_decode(audio_decoder_operations_t *adec_ops, char *outbuf, int *ou
 }
 
 
-UINT32 rm_io_read(void* pUserRead, BYTE* pBuf, UINT32 ulBytesToRead)
+UINT32 rm_io_read(void* pUserRead __unused, BYTE* pBuf, UINT32 ulBytesToRead)
 {
     memcpy(pBuf, cur_read_ptr, ulBytesToRead);
     cur_read_ptr = cur_read_ptr + ulBytesToRead;
@@ -438,7 +438,7 @@ void rm_io_seek(void* pUserRead, UINT32 ulOffset, UINT32 ulOrigin)
     }
 
 }
-unsigned rm_ab_read(void* pUserRead, BYTE* pBuf, UINT32 ulBytesToRead)
+UINT32 rm_ab_read(void* pUserRead __unused, BYTE* pBuf, UINT32 ulBytesToRead)
 {
     int ret = 0;
 #if 0
@@ -448,7 +448,7 @@ unsigned rm_ab_read(void* pUserRead, BYTE* pBuf, UINT32 ulBytesToRead)
     return ret;
 #endif
     if (pBuf && ulBytesToRead) {
-        ret = (ulBytesToRead > cook_input.buf_len) ? cook_input.buf_len : ulBytesToRead;
+        ret = ((int)ulBytesToRead > cook_input.buf_len) ? cook_input.buf_len : ulBytesToRead;
         memcpy(pBuf, cook_input.buf, ret);
         if (ret < cook_input.buf_len) {
             memcpy(cook_input.buf, (cook_input.buf + ret),  cook_input.buf_len - ret);
@@ -459,9 +459,9 @@ unsigned rm_ab_read(void* pUserRead, BYTE* pBuf, UINT32 ulBytesToRead)
     cook_input.all_consume += ret;
     return ret;
 }
-void rm_ab_seek(void* pUserRead, UINT32 ulOffset, UINT32 ulOrigin)
+void rm_ab_seek(void* pUserRead __unused, UINT32 ulOffset, UINT32 ulOrigin)
 {
-    int i;
+    //int i;
 #if 0
     if (ulOrigin == HX_SEEK_ORIGIN_CUR) {
         for (i = 0; i < ulOffset; i++) {
@@ -470,7 +470,7 @@ void rm_ab_seek(void* pUserRead, UINT32 ulOffset, UINT32 ulOrigin)
     }
 #endif
     if (ulOrigin == HX_SEEK_ORIGIN_CUR) {
-        if (ulOffset <= cook_input.buf_len) {
+        if ((int)ulOffset <= cook_input.buf_len) {
             //memcpy(cook_input.buf, cook_input.buf + ulOffset, cook_input.buf_len - ulOffset);
             cook_input.buf_len -= ulOffset;
             cook_input.cousume += ulOffset;
@@ -482,20 +482,20 @@ void rm_ab_seek(void* pUserRead, UINT32 ulOffset, UINT32 ulOrigin)
     }
 
 }
-HX_RESULT _raac_block_available(void* pAvail, UINT32 ulSubStream, ra_block* pBlock)
+HX_RESULT _raac_block_available(void* pAvail, UINT32 ulSubStream __unused, ra_block* pBlock)
 {
-    int len = 0, wlen;
-    int offset = 0;
+    int len = 0;
+    //int offset = 0;
     HX_RESULT retVal = HXR_OK;
     UINT32 ulBytesConsumed = 0;
-    UINT32 ulTotalConsumed = 0;
+    //UINT32 ulTotalConsumed = 0;
     UINT32 ulBytesLeft     = 0;
     UINT32 ulNumSamplesOut = 0;
-    UINT32 ulMaxSamples    = 0;
+    //UINT32 ulMaxSamples    = 0;
     UINT32 out_data_len = 0;
     UINT32 delay_pts = 0;
     //BYTE*   buf = raac_dec_info.input_buf;//passed from the audio dec thread
-    rm_info_t* pInfo = (rm_info_t*) pAvail;
+    //rm_info_t* pInfo = (rm_info_t*) pAvail;
     if (pAvail && pBlock && pBlock->pData && pBlock->ulDataLen) {
         ulBytesLeft = pBlock->ulDataLen;
         while (retVal == HXR_OK && ulBytesLeft) {
@@ -659,7 +659,7 @@ int audio_dec_init(audio_decoder_operations_t *adec_ops)
         rm_parser_destroy(&pParser);
         return -1;
     }
-    for (i = 0; i < ulNumStreams && retVal == HXR_OK; i++) {
+    for (i = 0; i < (int)ulNumStreams && retVal == HXR_OK; i++) {
         retVal = rm_parser_get_stream_header(pParser, i, &pHdr);
         if (retVal == HXR_OK) {
             if (rm_stream_is_realaudio(pHdr)) {
@@ -743,7 +743,7 @@ int audio_dec_init(audio_decoder_operations_t *adec_ops)
             rm_parser_destroy(&pParser);
             raac_info.pParser = NULL;
         }
-        raac_print("[raac decode],dsp malloc  failed,request %s bytes\n", raac_dec_info.ulOutBufSize);
+        raac_print("[raac decode],dsp malloc  failed,request %lu bytes\n", raac_dec_info.ulOutBufSize);
         return -1;
     }
     retVal = ra_decode_init(raac_dec_info.pDecode, ulCodec4CC, HXNULL, 0, raac_info.pRaInfo);
@@ -769,9 +769,9 @@ int audio_dec_init(audio_decoder_operations_t *adec_ops)
     aac_decode  *pdec = (aac_decode *)raac_dec_info.pDecode->pDecode;
     if (pdec /*&& pdec->ulSampleRateCore*/) {
         //fmt->sample_rate = pdec->ulSampleRateCore;
-        raac_print("actual  sr %d, sr %d,sbr %d,core sr %d,dec aac sr %d \n", raac_info.pRaInfo->ulActualRate, \
-                   raac_info.pRaInfo->ulSampleRate, pdec->bSBR, \
-                   pdec->ulSampleRateCore, pdec->ulSampleRateOut);
+        raac_print("actual  sr %d, sr %d,sbr %d,core sr %d,dec aac sr %d \n", (int)raac_info.pRaInfo->ulActualRate, \
+                   (int)raac_info.pRaInfo->ulSampleRate, pdec->bSBR, \
+                   (int)pdec->ulSampleRateCore, (int)pdec->ulSampleRateOut);
     }
 #endif
 
@@ -800,7 +800,7 @@ void ra_depack_cleanup(void)
 
 
 //static int raac_decode_release(void)
-int audio_dec_release(audio_decoder_operations_t *adec_ops)
+int audio_dec_release(audio_decoder_operations_t *adec_ops __unused)
 {
     if (cook_input.buf != NULL) {
         free(cook_input.buf);
@@ -824,7 +824,7 @@ int audio_dec_release(audio_decoder_operations_t *adec_ops)
     return 0;
 }
 
-int audio_dec_getinfo(audio_decoder_operations_t *adec_ops, void *pAudioInfo)
+int audio_dec_getinfo(audio_decoder_operations_t *adec_ops __unused, void *pAudioInfo)
 {
     aac_decode  *pdec = (aac_decode *)raac_dec_info.pDecode->pDecode;
     if (pdec) {

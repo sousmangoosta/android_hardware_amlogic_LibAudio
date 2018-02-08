@@ -33,6 +33,37 @@
 
 #include "bits.h"
 
+/* reads only n bytes from the stream instead of the standard 4 */
+static /*INLINE*/ uint32_t getdword_n(void *mem, int n)
+{
+    uint32_t tmp = 0;
+#ifndef ARCH_IS_BIG_ENDIAN
+    switch (n) {
+    case 3:
+        ((uint8_t*)&tmp)[1] = ((uint8_t*)mem)[2];
+    case 2:
+        ((uint8_t*)&tmp)[2] = ((uint8_t*)mem)[1];
+    case 1:
+        ((uint8_t*)&tmp)[3] = ((uint8_t*)mem)[0];
+    default:
+        break;
+    }
+#else
+    switch (n) {
+    case 3:
+        ((uint8_t*)&tmp)[2] = ((uint8_t*)mem)[2];
+    case 2:
+        ((uint8_t*)&tmp)[1] = ((uint8_t*)mem)[1];
+    case 1:
+        ((uint8_t*)&tmp)[0] = ((uint8_t*)mem)[0];
+    default:
+        break;
+    }
+#endif
+
+    return tmp;
+}
+
 /* initialize buffer, call once before first getbits or showbits */
 void faad_initbits(bitfile *ld, const void *_buffer, const uint32_t buffer_size)
 {
@@ -81,7 +112,7 @@ void faad_initbits(bitfile *ld, const void *_buffer, const uint32_t buffer_size)
     ld->error = 0;
 }
 
-void faad_endbits(bitfile *ld)
+void faad_endbits(bitfile *ld __unused)
 {
     // void
 }

@@ -49,6 +49,26 @@
 #include "bits.h"
 #include "rvlc.h"
 
+static /*INLINE*/ uint32_t faad_getbits_rev(bitfile *ld, uint32_t n
+        DEBUGDEC)
+{
+    uint32_t ret;
+
+    if (n == 0) {
+        return 0;
+    }
+
+    ret = faad_showbits_rev(ld, n);
+    faad_flushbits_rev(ld, n);
+
+#ifdef ANALYSIS
+    if (print) {
+        fprintf(stdout, "%4d %2d bits, val: %4d, variable: %d %s\n", dbg_count++, n, ret, var, dbg);
+    }
+#endif
+
+    return ret;
+}
 
 #ifdef ERROR_RESILIENCE
 

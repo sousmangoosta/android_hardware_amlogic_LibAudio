@@ -26,6 +26,8 @@
 #include "Amsysfsutils.h"
 #include "amconfigutils.h"
 
+#define LOG_TAG "audiodsp-ctl"
+
 firmware_s_t firmware_list[] = {
     {0, MCODEC_FMT_MPEG123, "audiodsp_codec_mad.bin"},
     {1, MCODEC_FMT_AAC, "audiodsp_codec_aac_helix.bin"},
@@ -171,7 +173,7 @@ int audiodsp_init(dsp_operations_t *dsp_ops)
     num = ARRAY_SIZE(firmware_list);
 
     if (dsp_ops->dsp_file_fd < 0) {
-        fd = open(DSP_DEV_NOD, O_RDONLY, 0644);
+        fd = open(DSP_DEV_NOD, O_RDONLY);
     }
 
     if (fd < 0) {
@@ -204,7 +206,7 @@ int audiodsp_init(dsp_operations_t *dsp_ops)
  * \param dsp_ops pointer to dsp operation struct
  * \return 0 on success otherwise negative code error
  */
-static err_count = 0;
+static int err_count = 0;
 
 #define PARSER_WAIT_MAX 100
 int audiodsp_start(aml_audio_dec_t *audec)

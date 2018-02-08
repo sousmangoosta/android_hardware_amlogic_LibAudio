@@ -7,9 +7,9 @@
 
 extern "C" int read_buffer(unsigned char *buffer,int size);
 
-#define LOG_TAG "MP3_Mediasource"
-#define ALOGI(...) __android_log_print(ANDROID_LOG_INFO,LOG_TAG,__VA_ARGS__)
-#define ALOGE(...) __android_log_print(ANDROID_LOG_ERROR,LOG_TAG,__VA_ARGS__)
+//#define LOG_TAG "MP3_Mediasource"
+//#define ALOGI(...) __android_log_print(ANDROID_LOG_INFO,LOG_TAG,__VA_ARGS__)
+//#define ALOGE(...) __android_log_print(ANDROID_LOG_ERROR,LOG_TAG,__VA_ARGS__)
 
 #define kMaxReadBytes 4096
 #define MaxFrameSize 4096
@@ -57,7 +57,7 @@ inline bool MP3_MediaSource::GetMPEGAudioFrameSize(uint32_t header, int *frame_s
         return false;
     }
 
-    unsigned protection = (header >> 16) & 1;
+    //unsigned protection = (header >> 16) & 1;
 
     unsigned bitrate_index = (header >> 12) & 0x0f;
 
@@ -266,7 +266,7 @@ unsigned int MP3_MediaSource::Resync(uint32_t pos)
     uint32_t test_header = 0;
     int offset = 0;
     int readbytes = 0;
-    uint32_t counter = 0;
+    //uint32_t counter = 0;
     int framesize = 0;
     uint32_t position = pos;
     uint8_t *buffer;
@@ -312,7 +312,7 @@ BeginResync:
         
 Compare:
         if(!GetMPEGAudioFrameSize(test_header,&framesize,NULL,NULL,NULL,NULL) || 
-                                                (test_header & kMask != first_header & kMask))
+                                                ((test_header & kMask) != (first_header & kMask)))
         {
             if(refind_header(buffer+4, &framesize, &header_buffer[0],offset-4,&readbytes) == false)
             {
@@ -359,8 +359,8 @@ Compare:
             }
         }
     } while (Resynced_flag != 3);
-    ALOGI("SyncWordPosArray:%lld/ %lld/ %lld/ %lld/ %lld",
-            SyncWordPosArray[0],SyncWordPosArray[1],SyncWordPosArray[2],SyncWordPosArray[3],SyncWordPosArray[4]);
+    ALOGI("SyncWordPosArray:%ld/ %ld/ %ld/ %ld/ %ld",
+            (long)SyncWordPosArray[0], (long)SyncWordPosArray[1], (long)SyncWordPosArray[2], (long)SyncWordPosArray[3], (long)SyncWordPosArray[4]);
     Resync_pos = 0;
     return first_header;
 }
@@ -457,8 +457,8 @@ int MP3_MediaSource::GetReadedBytes()
      }
      if(bytes_used<0)
      {
-        ALOGI("[%s]WARING: bytes_readed_sum(%lld) < bytes_readed_sum_pre(%lld) \n",__FUNCTION__,
-                                                        bytes_readed_sum,bytes_readed_sum_pre);
+        ALOGI("[%s]WARING: bytes_readed_sum(%ld) < bytes_readed_sum_pre(%ld) \n",__FUNCTION__,
+                                                        (long)bytes_readed_sum, (long)bytes_readed_sum_pre);
         bytes_used=0;
      }
      bytes_readed_sum_pre=bytes_readed_sum;
@@ -470,11 +470,11 @@ sp<MetaData> MP3_MediaSource::getFormat() {
     return mMeta;
 }
 
-status_t MP3_MediaSource::start(MetaData *params)
+status_t MP3_MediaSource::start(MetaData *params __unused)
 {
     ALOGI("[%s] in line (%d) \n",__FUNCTION__,__LINE__);
     mGroup = new MediaBufferGroup;
-    mGroup->add_buffer(new MediaBuffer(MaxFrameSize));
+    mGroup->add_buffer(MediaBufferBase::Create(MaxFrameSize));
     mStarted = true;
     return OK;  
 }
@@ -488,13 +488,13 @@ status_t MP3_MediaSource::stop()
     return OK;
 }
 
-status_t MP3_MediaSource::read(MediaBuffer **out, const ReadOptions *options)
+status_t MP3_MediaSource::read(MediaBufferBase **out, const ReadOptions *options __unused)
 {
     *out = NULL;
     uint32_t readedbytes = 0;
     unsigned char header_buffer[5];
     frame_size = 0;
-    uint32_t header = 0;
+    //uint32_t header = 0;
     
     if (*pStop_ReadBuf_Flag==1){
         ALOGI("Stop_ReadBuf_Flag==1 stop read_buf [%s %d]",__FUNCTION__,__LINE__);
@@ -507,7 +507,7 @@ status_t MP3_MediaSource::read(MediaBuffer **out, const ReadOptions *options)
         start_flag = 0;
     }
     
-    MediaBuffer *buffer;
+    MediaBufferBase *buffer;
     status_t err = mGroup->acquire_buffer(&buffer);
     if (err != OK) {
         return err;
@@ -565,8 +565,8 @@ Read_data:
     }
     
     buffer->set_range(0, frame_size);
-    buffer->meta_data()->setInt64(kKeyTime, mCurrentTimeUs);
-    buffer->meta_data()->setInt32(kKeyIsSyncFrame, 1);
+    buffer->meta_data().setInt64(kKeyTime, mCurrentTimeUs);
+    buffer->meta_data().setInt32(kKeyIsSyncFrame, 1);
     
     *out = buffer;
      return OK;

@@ -34,9 +34,9 @@
 #define  LOG_TAG    "ApeDecoder"
 #define audio_codec_print(...) __android_log_print(ANDROID_LOG_INFO,LOG_TAG,__VA_ARGS__)
 
-static APEIOBuf  apeiobuf = {0};
+static APEIOBuf  apeiobuf;// = {0};
 static APE_Decoder_t *apedec;
-static int read_buffersize_per_time = 102400 ; //100k
+//static int read_buffersize_per_time = 102400 ; //100k
 ape_extra_data headinfo ;
 
 //#include<
@@ -206,7 +206,7 @@ APE_Decode_status_t ape_decode_init(APE_Decoder_t *avctx)
     }
     return APE_DECODE_INIT_FINISH;
 }
-
+/*
 static  int ape_decode_close(APE_Decoder_t * avctx)
 {
     APE_COdec_Private_t *s = avctx->private_data;
@@ -218,7 +218,7 @@ static  int ape_decode_close(APE_Decoder_t * avctx)
 
     return 0;
 }
-
+*/
 /**
  * @defgroup rangecoder APE range decoder
  * @{
@@ -378,7 +378,7 @@ static inline void update_rice(APERice *rice, int x)
     int lim = rice->k ? (1 << (rice->k + 4)) : 0;
     rice->ksum += ((x + 1) / 2) - ((rice->ksum + 16) >> 5);
 
-    if (rice->ksum < lim) {
+    if ((int)rice->ksum < lim) {
         rice->k--;
     } else if (rice->ksum >= (1 << (rice->k + 5))) {
         rice->k++;
@@ -668,12 +668,12 @@ static void do_init_filter(APEFilter *f, int16_t * buf, int order)
     f->avg = 0;
 }
 
-static void init_filter(APE_COdec_Private_t * ctx, APEFilter *f, int16_t * buf, int order)
+static void init_filter(APE_COdec_Private_t * ctx __unused, APEFilter *f, int16_t * buf, int order)
 {
     do_init_filter(&f[0], buf, order);
     do_init_filter(&f[1], buf + order * 3 + HISTORY_SIZE, order);
 }
-static int32_t scalarproduct_int16_c(int16_t * v1, int16_t * v2, int order, int shift)
+static int32_t scalarproduct_int16_c(int16_t * v1, int16_t * v2, int order, int shift __unused)
 {
     int res = 0;
 
@@ -756,7 +756,7 @@ static inline int16_t av_clip_int16(int a)
         return a;
     }
 }
-static inline void do_apply_filter(APE_COdec_Private_t * ctx, int version, APEFilter *f, int32_t *data, int count, int order, int fracbits)
+static inline void do_apply_filter(APE_COdec_Private_t * ctx __unused, int version, APEFilter *f, int32_t *data, int count, int order, int fracbits)
 {
     int res;
     int absres;
@@ -891,7 +891,7 @@ static void ape_unpack_stereo(APE_COdec_Private_t * ctx, int count)
 
     if (ctx->frameflags & APE_FRAMECODE_STEREO_SILENCE) {
         /* We are pure silence, so we're done. */
-        printf("Function %s:pure silence stereo\n,""ape_unpack_stereo");
+        printf("Function :pure silence stereo\n,""ape_unpack_stereo");
         return;
     }
 
@@ -1005,7 +1005,7 @@ APE_Decode_status_t ape_decode_frame(APE_Decoder_t * avctx,  \
     if (s->error || s->ptr > s->data_end) {
         s->samples = 0;
         *data_size = 0;
-        printf("Error decoding frame.error num 0x%x.s->ptr 0x%x bigger s->data_end %x\n", s->error, s->ptr, s->data_end);
+        printf("Error decoding frame.error num 0x%x.s->ptr 0x%s bigger s->data_end %s\n", s->error, s->ptr, s->data_end);
         return APE_DECODE_ERROR_ABORT;
     }
 
@@ -1024,19 +1024,19 @@ APE_Decode_status_t ape_decode_frame(APE_Decoder_t * avctx,  \
 }
 
 //confirmed one frame
-int audio_dec_decode(audio_decoder_operations_t *adec_ops, char *outbuf, int *outlen, char *inbuf, int inlen)
+int audio_dec_decode(audio_decoder_operations_t *adec_ops __unused, char *outbuf, int *outlen, char *inbuf, int inlen)
 {
-    unsigned char buffer[5];
+    //unsigned char buffer[5];
     unsigned  current_framesize = 0;
-    char extra_data = 8;
-    unsigned int first_read = 0;
+    //char extra_data = 8;
+    //unsigned int first_read = 0;
     apeiobuf.bytesLeft = 0;
     int nDecodedSize = 0;
     if (apeiobuf.bytesLeft == 0) {
         current_framesize = inlen;//sss
-        apeiobuf.readPtr = inbuf;
-        int buffersize_remain = current_framesize;
-        unsigned char * read_buf_ptr = apeiobuf.readPtr;
+        apeiobuf.readPtr = (unsigned char *)inbuf;
+        //int buffersize_remain = current_framesize;
+        //unsigned char * read_buf_ptr = apeiobuf.readPtr;
         apeiobuf.bytesLeft += current_framesize;
         apedec->public_data->current_decoding_frame++;
     }
@@ -1106,11 +1106,11 @@ int audio_dec_init(audio_decoder_operations_t *adec_ops)
     audio_codec_print("ape_Init.\n");
     return 0;
 }
-int audio_dec_release(audio_decoder_operations_t *adec_ops)
+int audio_dec_release(audio_decoder_operations_t *adec_ops __unused)
 {
     return 0;
 }
-int audio_dec_getinfo(audio_decoder_operations_t *adec_ops, void *pAudioInfo)
+int audio_dec_getinfo(audio_decoder_operations_t *adec_ops __unused, void *pAudioInfo __unused)
 {
     return 0;
 }

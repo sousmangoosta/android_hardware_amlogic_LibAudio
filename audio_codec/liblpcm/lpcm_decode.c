@@ -91,14 +91,14 @@ static int uio_init()
     phys_size = (phys_size + pagesize - 1) & (~(pagesize - 1));
     memmap = mmap(NULL, phys_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd_uio, 0 * pagesize);
 
-    audio_codec_print("memmap = %x , pagesize = %x\n", memmap, pagesize);
+    audio_codec_print("memmap = %s , pagesize = %x\n", memmap, pagesize);
     if (memmap == MAP_FAILED) {
         audio_codec_print("map /dev/uio0 failed\n");
         return -1;
     }
     if (phys_offset == 0)
         phys_offset = (AIU_AIFIFO_CTRL*4)&(pagesize-1);
-    reg_base = memmap + phys_offset;
+    reg_base = (unsigned int *)(memmap + phys_offset);
     return 0;
 }
 
@@ -293,7 +293,7 @@ static int parse_wifi_display_pcm_header(char *header, int *bps)
 int frame_size_check_flag = 0;
 int frame_size_check = 0;
 int jump_read_head_flag = 0;
-int audio_dec_init(audio_decoder_operations_t *adp)
+int audio_dec_init(audio_decoder_operations_t *adp __unused)
 {
     //printk("\n\n[%s]WFD LPCMDEC BuildDate--%s  BuildTime--%s", __FUNCTION__, __DATE__, __TIME__);
     char value[PROPERTY_VALUE_MAX];
@@ -314,7 +314,7 @@ int audio_dec_init(audio_decoder_operations_t *adp)
 
 
 
-int audio_dec_decode(audio_decoder_operations_t *adec_ops, char *buf, int *outlen, char *inbuf, int inlen)
+int audio_dec_decode(audio_decoder_operations_t *adec_ops, char *buf, int *outlen, char *inbuf, int inlen __unused)
 {
     short *sample;
     unsigned char *src;
@@ -350,7 +350,7 @@ resync:
     }
 
     if (pcm_buffer[0] == 0xa0) {
-        frame_size = parse_wifi_display_pcm_header(pcm_buffer, &bps);
+        frame_size = parse_wifi_display_pcm_header((char *)pcm_buffer, &bps);
         if (frame_size > 1920) {
             printk("frame size error ??? %d \n", frame_size);
             goto skipbyte;
@@ -412,7 +412,7 @@ skipbyte:
     return stream_in_offset;
 }
 
-int audio_dec_release(audio_decoder_operations_t *adec_ops)
+int audio_dec_release(audio_decoder_operations_t *adec_ops __unused)
 {
     if (fd_uio >= 0) {
         close(fd_uio);
@@ -426,7 +426,7 @@ int audio_dec_release(audio_decoder_operations_t *adec_ops)
 }
 
 
-int audio_dec_getinfo(audio_decoder_operations_t *adec_ops)
+int audio_dec_getinfo(audio_decoder_operations_t *adec_ops __unused)
 {
     return 0;
 }

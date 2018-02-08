@@ -112,7 +112,7 @@ extern const uint32_t ff_inverse[257];
 #endif
 
 extern const uint8_t ff_sqrt_tab[256];
-
+/*
 static inline av_const unsigned int ff_sqrt(unsigned int a)
 {
     unsigned int b;
@@ -138,7 +138,7 @@ static inline av_const unsigned int ff_sqrt(unsigned int a)
 
     return b - (a < b * b);
 }
-
+*/
 #if ARCH_X86
 #define MASK_ABS(mask, level)\
             __asm__ volatile(\

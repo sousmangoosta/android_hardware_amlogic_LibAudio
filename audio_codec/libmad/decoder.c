@@ -198,7 +198,7 @@ int id3_tag_query(char  *data, int length)
 * NAME: decoder->init()
 * DESCRIPTION:  initialize a decoder object with callback routines
 */
-void mad_decoder_init(struct mad_decoder *decoder, void *data,
+void mad_decoder_init(struct mad_decoder *decoder, void *data __unused,
                       enum mad_flow(*input_func)(void *,
                               struct mad_stream *),
                       enum mad_flow(*header_func)(void *,
@@ -235,7 +235,7 @@ void mad_decoder_init(struct mad_decoder *decoder, void *data,
     decoder->message_func = message_func;
 }
 
-int mad_decoder_finish(struct mad_decoder *decoder)
+int mad_decoder_finish(struct mad_decoder *decoder __unused)
 {
 # if defined(USE_ASYNC)
     if (decoder->mode == MAD_DECODER_MODE_ASYNC && decoder->async.pid) {
@@ -727,8 +727,8 @@ int mad_decoder_run(struct mad_decoder *decoder, enum mad_decoder_mode mode)
 * NAME: decoder->message()
 * DESCRIPTION:  send a message to and receive a reply from the decoder process
 */
-int mad_decoder_message(struct mad_decoder *decoder,
-                        void *message, unsigned int *len)
+int mad_decoder_message(struct mad_decoder *decoder __unused,
+                        void *message __unused, unsigned int *len __unused)
 {
 # if defined(USE_ASYNC)
     if (decoder->mode != MAD_DECODER_MODE_ASYNC ||
@@ -801,7 +801,7 @@ signed int scale(mad_fixed_t sample)
 */
 
 static
-enum mad_flow output(void *data,
+enum mad_flow output(void *data __unused,
                      struct mad_header const *header,
                      struct mad_pcm *pcm)
 {
@@ -816,10 +816,10 @@ enum mad_flow output(void *data,
     right_ch  = pcm->samples[1];
     //*pcm_out_len += 4608;
     /*store the last channel num and sr info */
-    if (last_ch_num != nchannels) {
+    if (last_ch_num != (int)nchannels) {
         last_ch_num = nchannels;
     }
-    if (last_sr != pcm->samplerate) {
+    if (last_sr != (int)pcm->samplerate) {
         last_sr = pcm->samplerate;
     }
     *pcm_out_len += pcm->length * 2 * (header->mode > 0 ? 2 : 1);;
@@ -869,15 +869,15 @@ output1:
 */
 
 static
-enum mad_flow error(void *data,
+enum mad_flow error(void *data __unused,
                     struct mad_stream *stream,
-                    struct mad_frame *frame)
+                    struct mad_frame *frame __unused)
 {
-    struct buffer *buffer = data;
+    //struct buffer *buffer = data;
     int tagsize;
     switch (stream->error) {
     case MAD_ERROR_LOSTSYNC:
-        tagsize = id3_tag_query(stream->this_frame,
+        tagsize = id3_tag_query((char *)stream->this_frame,
                                 stream->bufend - stream->this_frame);
         if (tagsize > 0) {
             stream->skiplen = tagsize;
@@ -892,9 +892,9 @@ enum mad_flow error(void *data,
     default:
         break;
     }
-    audio_codec_print("decoding error 0x%04x (%s) at byte offset %u\n",
+    audio_codec_print("decoding error 0x%04x (%s) at byte offset %d\n",
                       stream->error, mad_stream_errorstr(stream),
-                      stream->this_frame - stream->buffer);
+                      (int)(stream->this_frame - stream->buffer));
 
     /* return MAD_FLOW_BREAK here to stop decoding (and propagate an error) */
     if (stream->error == MAD_ERROR_BADBITALLOC) {
@@ -915,14 +915,14 @@ enum mad_flow error(void *data,
 
 int audio_dec_decode(
 #ifndef _WIN32
-    audio_decoder_operations_t *adec_ops,
+    audio_decoder_operations_t *adec_ops __unused,
 #endif
     char *outbuf, int *outlen, char *inbuf, int inlen/*unsigned char const *start, unsigned long length*/)
 {
     int result;
     struct buffer buffer;
 
-    buffer.start  = inbuf;
+    buffer.start  = (void *)inbuf;
     buffer.length = inlen;
 
     /* initialize our private message structure */
@@ -1005,7 +1005,7 @@ int audio_dec_getinfo(audio_decoder_operations_t *adec_ops, void *pAudioInfo)
 
 int audio_dec_release(
 #ifndef _WIN32
-    audio_decoder_operations_t *adec_ops
+    audio_decoder_operations_t *adec_ops __unused
 #endif
 )
 {

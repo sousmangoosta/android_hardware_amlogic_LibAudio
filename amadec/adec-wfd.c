@@ -15,6 +15,8 @@
 #include <amthreadpool.h>
 #include "audiodsp_update_format.h"
 
+#define LOG_TAG "adec-wfd"
+
 typedef struct {
     int codec_id;
     char    name[64];
@@ -31,12 +33,27 @@ typedef void (*fn_audio_set_exit_flag)();
 
 static audio_lib_t wfd_audio_lib_list[] = {
     {ACODEC_FMT_WIFIDISPLAY, "libpcm_wfd.so"},
-    {ACODEC_FMT_AAC, "libaac_helix.so"},
-    0
+    {ACODEC_FMT_AAC, "libaac_helix.so"}
 } ;
 static audio_decoder_operations_t WFDAudioDecoder = {
     "WFDDecoder",
     AUDIO_ARM_DECODER,
+    0,
+    0,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    0,
+    0,
+    0,
+    0,
+    0,
+    { 0 },
+    0,
     0,
 };
 
@@ -88,7 +105,7 @@ error:
     dec_mLibHandle = NULL;
     return -1;
 }
-static int wfd_register_output_lib(aml_audio_dec_t *audec)
+static int wfd_register_output_lib(aml_audio_dec_t *audec __unused)
 {
     out_mLibHandle = dlopen("libamadec_wfd_out.so", RTLD_NOW);
     if (out_mLibHandle) {
@@ -128,17 +145,17 @@ static void wfd_unregister_lib()
 extern int read_buffer(unsigned char *buffer, int size);
 
 
-static int   wfd_dec_pcm_read(dsp_operations_t *dsp_ops, char *buffer, int len)
+static int   wfd_dec_pcm_read(dsp_operations_t *dsp_ops __unused, char *buffer __unused, int len __unused)
 {
     return 0;
 }
 static unsigned long  wfd_dec_get_pts(dsp_operations_t *dsp_ops)
 {
-    unsigned long val, offset;
+    unsigned long offset;
     unsigned long pts;
-    int data_width, channels, samplerate;
+    int samplerate;
     unsigned long long frame_nums ;
-    unsigned long delay_pts;
+    //unsigned long delay_pts;
     samplerate = 48000;
     aml_audio_dec_t *audec = (aml_audio_dec_t *)dsp_ops->audec;
     offset = audec->decode_offset;
@@ -146,7 +163,7 @@ static unsigned long  wfd_dec_get_pts(dsp_operations_t *dsp_ops)
     if (dsp_ops->dsp_file_fd >= 0) {
         ioctl(dsp_ops->dsp_file_fd, AMSTREAM_IOC_APTS_LOOKUP, &offset);
     } else {
-        adec_print("====abuf have not open!\n", val);
+        adec_print("====abuf have not open!\n");
     }
     pts = offset;
     if (pts == 0) {
@@ -154,7 +171,7 @@ static unsigned long  wfd_dec_get_pts(dsp_operations_t *dsp_ops)
             pts = audec->last_valid_pts;
         }
         frame_nums = (audec->out_len_after_last_valid_pts * 8 / (16 * 2));
-        adec_print("decode_offset:%d out_pcm:%d   pts:%d \n", audec->decode_offset, audec->out_len_after_last_valid_pts, pts);
+        adec_print("decode_offset:%ld out_pcm:%d   pts:%ld \n", audec->decode_offset, audec->out_len_after_last_valid_pts, pts);
         pts += (frame_nums * 90000 / samplerate);
         return pts;
     }
@@ -173,7 +190,7 @@ static  unsigned long  wfd_dec_get_pcrscr(dsp_operations_t *dsp_ops)
     ioctl(dsp_ops->dsp_file_fd, AMSTREAM_IOC_PCRSCR, &val);
     return val;
 }
-unsigned long  wfd_dec_set_pts(dsp_operations_t *dsp_ops, unsigned long apts)
+int wfd_dec_set_pts(dsp_operations_t *dsp_ops, unsigned long apts)
 {
     if (dsp_ops->dsp_file_fd < 0) {
         adec_print("armdec_set_apts err!\n");
@@ -182,7 +199,7 @@ unsigned long  wfd_dec_set_pts(dsp_operations_t *dsp_ops, unsigned long apts)
     ioctl(dsp_ops->dsp_file_fd, AMSTREAM_IOC_SET_APTS, &apts);
     return 0;
 }
-static int wfd_dec_set_skip_bytes(dsp_operations_t* dsp_ops, unsigned int bytes)
+static int wfd_dec_set_skip_bytes(dsp_operations_t* dsp_ops __unused, unsigned int bytes __unused)
 {
     return  0;
 }
@@ -227,7 +244,6 @@ static int get_first_apts_flag(dsp_operations_t *dsp_ops)
 static void start_adec(aml_audio_dec_t *audec)
 {
     int ret;
-    audio_out_operations_t *aout_ops = &audec->aout_ops;
     dsp_operations_t *dsp_ops = &audec->adsp_ops;
     unsigned long  vpts, apts;
     int times = 0;
@@ -269,6 +285,7 @@ static void start_adec(aml_audio_dec_t *audec)
             audec->auto_mute = 0;
         }
 #ifdef OUT_USE_AUDIOTRACK
+        audio_out_operations_t *aout_ops = &audec->aout_ops;
         aout_ops->start(audec);
 #endif
     }
@@ -280,11 +297,11 @@ static void start_adec(aml_audio_dec_t *audec)
  */
 static void pause_adec(aml_audio_dec_t *audec)
 {
-    audio_out_operations_t *aout_ops = &audec->aout_ops;
     if (audec->state == ACTIVE) {
         audec->state = PAUSED;
         adec_pts_pause();
 #ifdef OUT_USE_AUDIOTRACK
+        audio_out_operations_t *aout_ops = &audec->aout_ops;
         aout_ops->pause(audec);
 #endif
     }
@@ -296,10 +313,10 @@ static void pause_adec(aml_audio_dec_t *audec)
  */
 static void resume_adec(aml_audio_dec_t *audec)
 {
-    audio_out_operations_t *aout_ops = &audec->aout_ops;
     if (audec->state == PAUSED) {
         audec->state = ACTIVE;
 #ifdef OUT_USE_AUDIOTRACK
+        audio_out_operations_t *aout_ops = &audec->aout_ops;
         aout_ops->resume(audec);
 #endif
         adec_pts_resume();
@@ -312,11 +329,11 @@ static void resume_adec(aml_audio_dec_t *audec)
  */
 static void stop_adec(aml_audio_dec_t *audec)
 {
-    audio_out_operations_t *aout_ops = &audec->aout_ops;
     adec_print("[%s %d]audec->state/%d\n", __FUNCTION__, __LINE__, audec->state);
     if (audec->state > INITING) {
         audec->state = STOPPED;
 #ifdef OUT_USE_AUDIOTRACK
+        audio_out_operations_t *aout_ops = &audec->aout_ops;
         aout_ops->mute(audec, 1); //mute output, some repeat sound in audioflinger after stop
         aout_ops->stop(audec);
 #endif
@@ -338,7 +355,7 @@ static void release_adec(aml_audio_dec_t *audec)
  * \param audec pointer to audec
  * \param en 1 = mute, 0 = unmute
  */
-static void mute_adec(aml_audio_dec_t *audec, int en)
+static void mute_adec(aml_audio_dec_t *audec __unused, int en __unused)
 {
 #ifdef OUT_USE_AUDIOTRACK
     audio_out_operations_t *aout_ops = &audec->aout_ops;
@@ -355,7 +372,7 @@ static void mute_adec(aml_audio_dec_t *audec, int en)
  * \param audec pointer to audec
  * \param vol volume value
  */
-static void adec_set_volume(aml_audio_dec_t *audec, float vol)
+static void adec_set_volume(aml_audio_dec_t *audec __unused, float vol __unused)
 {
 #ifdef OUT_USE_AUDIOTRACK
     audio_out_operations_t *aout_ops = &audec->aout_ops;
@@ -372,7 +389,7 @@ static void adec_set_volume(aml_audio_dec_t *audec, float vol)
  * \param lvol left channel volume value
  * \param rvol right channel volume value
  */
-static void adec_set_lrvolume(aml_audio_dec_t *audec, float lvol, float rvol)
+static void adec_set_lrvolume(aml_audio_dec_t *audec __unused, float lvol __unused, float rvol __unused)
 {
 #ifdef OUT_USE_AUDIOTRACK
     audio_out_operations_t *aout_ops = &audec->aout_ops;
@@ -414,13 +431,13 @@ static void start_wfd_decode_thread(aml_audio_dec_t *audec)
     }
     audec->sn_threadid = tid;
     pthread_setname_np(tid, "AmadecDecodeWFD");
-    adec_print("[%s]Create WFD audio decode thread success! tid = %d\n", __FUNCTION__, tid);
+    adec_print("[%s]Create WFD audio decode thread success! tid = %ld\n", __FUNCTION__, tid);
 }
 static void stop_wfd_decode_thread(aml_audio_dec_t *audec)
 {
     adec_print("enter stop_wfd_decode_thread \n");
     audec->exit_decode_thread = 1;
-    int ret = amthreadpool_pthread_join(audec->sn_threadid, NULL);
+    amthreadpool_pthread_join(audec->sn_threadid, NULL);
     adec_print("[%s]wfd decode thread exit success\n", __FUNCTION__);
     audec->exit_decode_thread = 0;
     audec->sn_threadid = -1;
@@ -497,12 +514,12 @@ static void  audio_resample_api(char* buffer, unsigned int *size, int Chnum, int
 {
     short *pbuf;
     int resample_enable;
-    int resample_type;
+    //int resample_type;
     int resample_delta;
     int frame_read;
     int num_sample = 0;
-    int i, j, k, h;
-    int request = *size;
+    int j, k;
+    //int request = *size;
     int dsp_read = 0;
     static int last_resample_enable = 0;
     pbuf = (short*)date_temp;
@@ -591,7 +608,7 @@ static void set_wfd_pcm_thredhold()
 }
 void *audio_wfd_decode_loop(void *args)
 {
-    int ret;
+    //t ret;
     aml_audio_dec_t *audec;
     audio_out_operations_t *aout_ops;
     audio_decoder_operations_t *adec_ops;
@@ -615,7 +632,7 @@ void *audio_wfd_decode_loop(void *args)
         outlen = 0;
         //  adec_refresh_pts(audec);
         set_wfd_pcm_thredhold();
-        audec->decode_offset = adec_ops->decode(adec_ops, outbuf, &outlen, (char*)&in_latency, 0);
+        audec->decode_offset = adec_ops->decode(adec_ops, (char *)outbuf, &outlen, (char*)&in_latency, 0);
 
         if (outlen > 0) {
             if (!out_init_flag) {
@@ -645,21 +662,21 @@ void *audio_wfd_decode_loop(void *args)
                 }
                 outlen = 0;
             } else if (total_latency > dn_thred) {
-                audio_resample_api(outbuf, &outlen, 2, 1, dn_resample_delta);
+                audio_resample_api((char *)outbuf, (unsigned int *)&outlen, 2, 1, dn_resample_delta);
             } else if (total_latency < up_thred) {
-                audio_resample_api(outbuf, &outlen, 2, 1, up_resample_delta);
+                audio_resample_api((char *)outbuf, (unsigned int *)&outlen, 2, 1, up_resample_delta);
             }
             if (debug_latency) {
                 adec_print("wfd dec out %d byts pcm \n", outlen);
             }
-            write_size = wfd_out_write(outbuf, outlen);
+            write_size = wfd_out_write((char *)outbuf, outlen);
         }
         //TODO decode function
     }
     adec_print("exit audio_wfd_decode_loop Thread finished!\n");
     pthread_exit(NULL);
-error:
-    pthread_exit(NULL);
+//error:
+//  pthread_exit(NULL);
     return NULL;
 }
 

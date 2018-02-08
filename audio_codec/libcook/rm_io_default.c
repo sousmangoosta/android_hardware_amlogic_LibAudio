@@ -44,7 +44,7 @@
 #include "rm_io_default.h"
 #include "rm_parse.h"
 
-UINT32 rm_io_default_read(void* pUserRead, BYTE* pBuf, UINT32 ulBytesToRead)
+UINT32 rm_io_default_read(void* pUserRead __unused, BYTE* pBuf __unused, UINT32 ulBytesToRead __unused)
 {
     UINT32 ulRet = 0;
 #if 0
@@ -58,7 +58,7 @@ UINT32 rm_io_default_read(void* pUserRead, BYTE* pBuf, UINT32 ulBytesToRead)
     return ulRet;
 }
 
-void rm_io_default_seek(void* pUserRead, UINT32 ulOffset, UINT32 ulOrigin)
+void rm_io_default_seek(void* pUserRead __unused, UINT32 ulOffset __unused, UINT32 ulOrigin __unused)
 {
 #if 0
     {
@@ -70,7 +70,7 @@ void rm_io_default_seek(void* pUserRead, UINT32 ulOffset, UINT32 ulOrigin)
 #endif
 }
 
-UINT32 rm_io_datasrc_read(void* pUserRead, BYTE* pBuf, UINT32 ulBytesToRead)
+UINT32 rm_io_datasrc_read(void* pUserRead __unused, BYTE* pBuf __unused, UINT32 ulBytesToRead __unused)
 {
     UINT32 ulRet = 0;
 #if 0
@@ -83,7 +83,7 @@ UINT32 rm_io_datasrc_read(void* pUserRead, BYTE* pBuf, UINT32 ulBytesToRead)
     return ulRet;
 }
 
-void rm_io_datasrc_seek(void* pUserRead, UINT32 ulOffset, UINT32 ulOrigin)
+void rm_io_datasrc_seek(void* pUserRead __unused, UINT32 ulOffset __unused, UINT32 ulOrigin __unused)
 {
 #if 0
     DataSrc_t *ds = (DataSrc_t*)pUserRead;

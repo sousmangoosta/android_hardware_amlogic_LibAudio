@@ -375,7 +375,7 @@ int Dequantize(AACDecInfo *aacDecInfo, int ch)
  *
  * Notes:       only necessary if deinterleaving not part of Huffman decoding
  **************************************************************************************/
-int DeinterleaveShortBlocks(AACDecInfo *aacDecInfo, int ch)
+int DeinterleaveShortBlocks(AACDecInfo *aacDecInfo __unused, int ch __unused)
 {
     /* not used for this implementation - short block deinterleaving performed during Huffman decoding */
     return ERR_AAC_NONE;

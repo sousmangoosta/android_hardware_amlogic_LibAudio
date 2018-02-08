@@ -25,6 +25,8 @@
 #include <unistd.h>
 #include "audiodsp_update_format.h"
 
+#define LOG_TAG "adec-mgt"
+
 #define MULTICH_SUPPORT_PROPERTY "media.multich.support.info"
 #define PCM_88_96_SUPPORT        "media.libplayer.88_96K"
 
@@ -39,14 +41,14 @@ static int64_t gettime_ms(void)
 }
 
 
-
+/*
 static int set_tsync_enable(int enable)
 {
 
     char *path = "/sys/class/tsync/enable";
     return amsysfs_set_sysfs_int(path, enable);
 }
-
+*/
 typedef struct {
     //  int no;
     int audio_id;
@@ -328,12 +330,12 @@ static void adec_flag_check(aml_audio_dec_t *audec)
         audec->auto_mute = 0;
     }
 }
-
-static int write_buffer(char *outbuf, int outlen)
+/*
+static int write_buffer(char *outbuf __unused, int outlen __unused)
 {
     return 0;
 }
-
+*/
 
 static void *adec_message_loop(void *args)
 {
@@ -726,7 +728,7 @@ int audiodec_init(aml_audio_dec_t *audec)
 {
     int ret = 0;
     pthread_t    tid;
-    char value[PROPERTY_VALUE_MAX] = {0};
+    //char value[PROPERTY_VALUE_MAX] = {0};
     unsigned wfd = 0;
     adec_print("audiodec_init!");
     adec_message_pool_init(audec);
@@ -766,7 +768,7 @@ int audiodec_init(aml_audio_dec_t *audec)
         adec_print("Create adec main thread failed!\n");
         return ret;
     }
-    adec_print("Create adec main thread success! tid = %d\n", tid);
+    adec_print("Create adec main thread success! tid = %ld \n", tid);
     audec->thread_pid = tid;
     return ret;
 }

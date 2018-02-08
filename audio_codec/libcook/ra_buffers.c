@@ -70,7 +70,7 @@
  **************************************************************************************/
 static void ClearBuffer(void *buf, int nBytes)
 {
-    int i;
+    //int i;
     unsigned char *cbuf = (unsigned char *)buf;
 
     //for (i = 0; i < nBytes; i++)

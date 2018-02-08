@@ -67,9 +67,9 @@ struct frame_info  cur_frame;
 static ra_decoder_info_t ra_dec_info ;
 static rm_info_t ra_info ;
 static char file_header[AUDIO_EXTRA_DATA_SIZE];
-#pragma align_to(64,file_header)
+//#pragma align_to(64,file_header)
 static char *cur_read_ptr = file_header;
-static int reset = 0;
+//static int reset = 0;
 static void setsysfs(char * path, char * value)
 {
     int fd = -1;
@@ -89,7 +89,7 @@ static void rm_error(void* pError, HX_RESULT result, const char* pszMsg)
     //trans_err_code(DECODE_FATAL_ERR);
     //property_set("media.amplayer.noaudio", "1");
     setsysfs("/sys/class/audiodsp/codec_fatal_err", "2"); //Fatal error
-    libcook_print("rm_error pError=0x%08x result=0x%08x msg=%s\n", pError, result, pszMsg);
+    libcook_print("rm_error pError=0x%08x result=0x%08x msg=%s\n", (int)pError, result, pszMsg);
     //while(1);
 }
 
@@ -98,12 +98,12 @@ int audio_dec_decode(audio_decoder_operations_t *adec_ops, char *outbuf, int *ou
 {
     //libcook_print("audio_dec_decode, inlen = %d, cook_input.buf_len = %d\n", inlen, cook_input.buf_len);
     HX_RESULT retVal = HXR_OK;
-    UINT32 ulBytesConsumed = 0;
-    UINT32 ulTotalConsumed = 0;
-    UINT32 ulBytesLeft     = 0;
-    UINT32 ulNumSamplesOut = 0;
-    UINT32 ulMaxSamples    = 0;
-    UINT32 out_data_len = 0;
+    //UINT32 ulBytesConsumed = 0;
+    //UINT32 ulTotalConsumed = 0;
+    //UINT32 ulBytesLeft     = 0;
+    //UINT32 ulNumSamplesOut = 0;
+    //UINT32 ulMaxSamples    = 0;
+    //UINT32 out_data_len = 0;
 
     //ra_dec_info.input_buf = buf;
     //ra_dec_info.input_buffer_size = maxlen;
@@ -129,7 +129,7 @@ int audio_dec_decode(audio_decoder_operations_t *adec_ops, char *outbuf, int *ou
             rm_parser_destroy_packet(ra_info.pParser, &ra_info.pPacket);
         }
         if (retVal != HXR_OK) {
-            libcook_print("cook_decode_frame£º add packet failed\n");
+            libcook_print("cook_decode_frame add packet failed\n");
             break;
         }
         if (cook_input.buf_len <= 2048) {
@@ -153,7 +153,7 @@ int audio_dec_decode(audio_decoder_operations_t *adec_ops, char *outbuf, int *ou
     cur_frame.offset = 0;
     return ret;
 }
-static UINT32 rm_io_read(void* pUserRead, BYTE* pBuf, UINT32 ulBytesToRead)
+static UINT32 rm_io_read(void* pUserRead __unused, BYTE* pBuf, UINT32 ulBytesToRead)
 {
     //memcpy(pBuf,cur_read_ptr,ulBytesToRead);
     cur_read_ptr = cur_read_ptr + ulBytesToRead;
@@ -193,13 +193,13 @@ static void rm_io_seek(void* pUserRead, UINT32 ulOffset, UINT32 ulOrigin)
     }
 
 }
-static unsigned rm_ab_read(void* pUserRead, BYTE* pBuf, UINT32 ulBytesToRead)
+static UINT32 rm_ab_read(void* pUserRead __unused, BYTE* pBuf, UINT32 ulBytesToRead)
 {
-    int ret = 0;
+    UINT32 ret = 0;
     //libcook_print("rm_ab_read, ulBytesToRead = %d\n", ulBytesToRead);
     if (pBuf && ulBytesToRead) {
         //libcook_print("enter into copy data, buf_len = %d\n",cook_input.buf_len);
-        if (cook_input.buf_len >= ulBytesToRead) { //ret =  read_buffer(pBuf,ulBytesToRead);
+        if (cook_input.buf_len >= (int)ulBytesToRead) { //ret =  read_buffer(pBuf,ulBytesToRead);
             memcpy(pBuf, cook_input.buf, ulBytesToRead);
             ret = ulBytesToRead;
             cook_input.buf_len -= ret;
@@ -213,12 +213,12 @@ static unsigned rm_ab_read(void* pUserRead, BYTE* pBuf, UINT32 ulBytesToRead)
     cook_input.all_consume += ret;
     return ret;
 }
-static void rm_ab_seek(void* pUserRead, UINT32 ulOffset, UINT32 ulOrigin)
+static void rm_ab_seek(void* pUserRead __unused, UINT32 ulOffset, UINT32 ulOrigin)
 {
     //libcook_print("rm_ab_seek, buf_len = %d\n",cook_input.buf_len);
-    int i;
+    //int i;
     if (ulOrigin == HX_SEEK_ORIGIN_CUR) {
-        if (ulOffset <= cook_input.buf_len) {
+        if ((int)ulOffset <= cook_input.buf_len) {
             //memcpy(cook_input.buf, cook_input.buf + ulOffset, cook_input.buf_len - ulOffset);
             cook_input.buf_len -= ulOffset;
             cook_input.cousume += ulOffset;
@@ -251,21 +251,21 @@ static void rm_ab_seek(void* pUserRead, UINT32 ulOffset, UINT32 ulOrigin)
         }
     }
 }
-static HX_RESULT _ra_block_available(void* pAvail, UINT32 ulSubStream, ra_block* pBlock)
+static HX_RESULT _ra_block_available(void* pAvail, UINT32 ulSubStream __unused, ra_block* pBlock)
 {
     //libcook_print("[%s,%d] enter into _ra_block_available\n", __FUNCTION__,__LINE__);
-    int len = 0, wlen;
-    int offset = 0;
+    int len = 0;
+    //int offset = 0;
     HX_RESULT retVal = HXR_OK;
     UINT32 ulBytesConsumed = 0;
     UINT32 ulTotalConsumed = 0;
     UINT32 ulBytesLeft     = 0;
     UINT32 ulNumSamplesOut = 0;
-    UINT32 ulMaxSamples    = 0;
-    UINT32 out_data_len = 0;
+    //UINT32 ulMaxSamples    = 0;
+    //UINT32 out_data_len = 0;
     UINT32 delay_pts = 0;
     //BYTE*   buf = ra_dec_info.input_buf;//passed from the audio dec thread
-    rm_info_t* pInfo = (rm_info_t*) pAvail;
+    //rm_info_t* pInfo = (rm_info_t*) pAvail;
     if (pAvail && pBlock && pBlock->pData && pBlock->ulDataLen) {
         ulBytesLeft = pBlock->ulDataLen;
         if (retVal == HXR_OK && ulBytesLeft) {
@@ -315,7 +315,7 @@ static HX_RESULT _ra_block_available(void* pAvail, UINT32 ulSubStream, ra_block*
     cur_frame.offset += delay_pts;
     //refresh_swap_register1(cur_frame.offset+delay_pts, len);
     //dsp_mailbox_send(1,M1B_IRQ4_DECODE_FINISH_FRAME,wlen,&cur_frame,sizeof(cur_frame));
-date_trans:
+//date_trans:
     //wlen = write_buffer(ra_dec_info.pOutBuf + offset, len);
     memcpy(cook_output.buf + cook_output.buf_len, ra_dec_info.pOutBuf, len);
     cook_output.buf_len += len;
@@ -445,7 +445,7 @@ int audio_dec_init(audio_decoder_operations_t *adec_ops)
         rm_parser_destroy(&pParser);
         return -1;
     }
-    for (i = 0; i < ulNumStreams && retVal == HXR_OK; i++) {
+    for (i = 0; i < (int)ulNumStreams && retVal == HXR_OK; i++) {
         retVal = rm_parser_get_stream_header(pParser, i, &pHdr);
         if (retVal == HXR_OK) {
             if (rm_stream_is_realaudio(pHdr)) {
@@ -561,7 +561,7 @@ int audio_dec_init(audio_decoder_operations_t *adec_ops)
                     rm_parser_destroy(&pParser);
                     ra_info.pParser = NULL;
                 }
-                libcook_print("[cook decode],dsp malloc  failed,request %s bytes\n", ra_dec_info.ulOutBufSize);
+                libcook_print("[cook decode],dsp malloc  failed,request %lu bytes\n", ra_dec_info.ulOutBufSize);
                 return -1;
             }
         }
@@ -593,7 +593,7 @@ static void ra_depack_cleanup(void)
 
 
 //static int cook_decode_release(void)
-int audio_dec_release(audio_decoder_operations_t *adec_ops)
+int audio_dec_release(audio_decoder_operations_t *adec_ops __unused)
 {
     if (cook_input.buf != NULL) {
         free(cook_input.buf);
@@ -616,7 +616,7 @@ int audio_dec_release(audio_decoder_operations_t *adec_ops)
     return 0;
 }
 
-int audio_dec_getinfo(audio_decoder_operations_t *adec_ops, void *pAudioInfo)
+int audio_dec_getinfo(audio_decoder_operations_t *adec_ops __unused, void *pAudioInfo __unused)
 {
     return 0;
 }

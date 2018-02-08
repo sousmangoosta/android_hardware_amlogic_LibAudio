@@ -458,7 +458,7 @@ uint16_t ps_data(ps_info *ps, bitfile *ld, uint8_t *header)
 
 static uint16_t ps_extension(ps_info *ps, bitfile *ld,
                              const uint8_t ps_extension_id,
-                             const uint16_t num_bits_left)
+                             const uint16_t num_bits_left __unused)
 {
     uint8_t n;
     uint16_t bits = (uint16_t)faad_get_processed_bits(ld);

@@ -42,7 +42,7 @@
  *
  * sbrhfgen.c - high frequency generation for SBR
  **************************************************************************************/
-
+#include <stdio.h>
 #include "sbr.h"
 #include "assembly.h"
 
@@ -523,7 +523,7 @@ static void CalcLPCoefs(int *XBuf, int *a0re, int *a0im, int *a1re, int *a1im, i
  *
  * Return:      none
  **************************************************************************************/
-void GenerateHighFreq(PSInfoSBR *psi, SBRGrid *sbrGrid, SBRFreq *sbrFreq, SBRChan *sbrChan, int ch)
+void GenerateHighFreq(PSInfoSBR *psi, SBRGrid *sbrGrid, SBRFreq *sbrFreq, SBRChan *sbrChan, int ch __unused)
 {
     int band, newBW, c, t, gb, gbMask, gbIdx;
     int currPatch, p, x, k, g, i, iStart, iEnd, bw, bwsq;

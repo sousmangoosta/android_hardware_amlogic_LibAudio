@@ -55,13 +55,13 @@ HX_RESULT ra8lbr_unpack_opaque_data(ra8lbr_data* pData,
  * ra8lbr_decode_init
  */
 HX_RESULT
-ra8lbr_decode_init(void*              pInitParams,
-                   UINT32             ulInitParamsSize,
+ra8lbr_decode_init(void*              pInitParams __unused,
+                   UINT32             ulInitParamsSize __unused,
                    ra_format_info*    pStreamInfo,
                    void**             pDecode,
                    void*              pUserMem,
                    rm_malloc_func_ptr fpMalloc,
-                   rm_free_func_ptr   fpFree)
+                   rm_free_func_ptr   fpFree __unused)
 {
     HX_RESULT retVal = HXR_FAIL;
     ra8lbr_decode* pDec;
@@ -296,10 +296,10 @@ ra8lbr_decode_getrate(void*   pDecode,
 }
 
 HX_RESULT
-ra8lbr_decode_getdelay(void*   pDecode,
+ra8lbr_decode_getdelay(void*   pDecode __unused,
                        UINT32* pNumSamples)
 {
-    ra8lbr_decode* pDec = (ra8lbr_decode *)pDecode;
+    //ra8lbr_decode* pDec = (ra8lbr_decode *)pDecode;
     /* delay compensation is handled internally */
     *pNumSamples = 0;
 

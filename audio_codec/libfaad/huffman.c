@@ -297,9 +297,9 @@ static int16_t huffman_codebook(uint8_t i)
 {
     static const uint32_t data = 16428320;
     if (i == 0) {
-        return (int16_t)(data >> 16) & 0xFFFF;
+        return (int16_t)((data >> 16) & 0xFFFF);
     } else {
-        return (int16_t)data & 0xFFFF;
+        return (int16_t)(data & 0xFFFF);
     }
 }
 

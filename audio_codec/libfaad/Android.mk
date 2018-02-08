@@ -39,6 +39,9 @@ LOCAL_SRC_FILES +=   \
     helixaac/trigtabs_fltgen.c
 LOCAL_CFLAGS  += -DUSE_DEFAULT_STDLIB  -DUSE_HELIX_AAC_DECODER
 endif
+
+LOCAL_CFLAGS  += -Werror -Wunused-function
+
 LOCAL_ARM_MODE := arm
 LOCAL_C_INCLUDES := $(LOCAL_PATH) \
 	  $(LOCAL_PATH)/codebook
@@ -87,6 +90,8 @@ LOCAL_SRC_FILES +=   \
     helixaac/trigtabs_fltgen.c
 LOCAL_CFLAGS  += -DUSE_DEFAULT_STDLIB  -DUSE_HELIX_AAC_DECODER
 endif
+
+LOCAL_CFLAGS  += -Werror -Wunused-function
 
 LOCAL_ARM_MODE := arm
 LOCAL_MODULE_TAGS := optional

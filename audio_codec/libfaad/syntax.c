@@ -585,7 +585,7 @@ static uint8_t single_lfe_channel_element(NeAACDecStruct *hDecoder, bitfile *ld,
         uint8_t channel, uint8_t *tag)
 {
     uint8_t retval = 0;
-    element sce = {0};
+    element sce;// = {0};
     ic_stream *ics = &(sce.ics1);
     ALIGN int16_t spec_data[1024] = {0};
 
@@ -634,7 +634,7 @@ static uint8_t channel_pair_element(NeAACDecStruct *hDecoder, bitfile *ld,
 {
     ALIGN int16_t spec_data1[1024] = {0};
     ALIGN int16_t spec_data2[1024] = {0};
-    element cpe = {0};
+    element cpe;// = {0};
     ic_stream *ics1 = &(cpe.ics1);
     ic_stream *ics2 = &(cpe.ics2);
     uint8_t result;
@@ -973,7 +973,7 @@ static uint8_t coupling_channel_element(NeAACDecStruct *hDecoder, bitfile *ld)
 #endif
 
 /* Table 4.4.10 */
-static uint16_t data_stream_element(NeAACDecStruct *hDecoder, bitfile *ld)
+static uint16_t data_stream_element(NeAACDecStruct *hDecoder __unused, bitfile *ld)
 {
     uint8_t byte_aligned;
     uint16_t i, count;
@@ -1676,7 +1676,7 @@ static uint8_t section_data(NeAACDecStruct *hDecoder, ic_stream *ics, bitfile *l
 #ifdef ERROR_RESILIENCE
             }
 #endif
-            while ((sect_len_incr == sect_esc_val) /* &&
+            while (sect_len_incr == sect_esc_val /* &&
                 (k+sect_len < ics->max_sfb)*/) {
                 sect_len += sect_len_incr;
                 sect_len_incr = (uint8_t)faad_getbits(ld, sect_bits

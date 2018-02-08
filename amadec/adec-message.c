@@ -14,6 +14,7 @@
 #include <audio-dec.h>
 #include <amthreadpool.h>
 
+#define LOG_TAG "adec-message"
 /**
  * \brief message is empty or not
  * \param pool pointer to message pool

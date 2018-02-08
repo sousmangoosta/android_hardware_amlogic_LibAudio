@@ -20,6 +20,7 @@
 #include "Amsysfsutils.h"
 #include "amconfigutils.h"
 
+#define LOG_TAG "feeder"
 extern int audiodsp_start(aml_audio_dec_t *audec);
 /**
  * \brief get audio format
@@ -28,7 +29,7 @@ extern int audiodsp_start(aml_audio_dec_t *audec);
 static adec_audio_format_t get_audio_format(void)
 {
     char format[21];
-    int len;
+    //int len;
 
     format[0] = 0;
 

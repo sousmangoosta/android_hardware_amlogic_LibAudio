@@ -276,14 +276,14 @@ int  AudioSpecificConfigFromBitfile(bitfile *ld,
 
     /* no SBR signalled, this could mean either implicit signalling or no SBR in this file */
     /* MPEG specification states: assume SBR on files with samplerate <= 24000 Hz */
-    if (mp4ASC->sbr_present_flag == -1) {
+    /*if (mp4ASC->sbr_present_flag == -1) {
         if (mp4ASC->samplingFrequency <= 24000) {
             mp4ASC->samplingFrequency *= 2;
             mp4ASC->forceUpSampling = 1;
-        } else { /* > 24000*/
+        } else { // > 24000
             mp4ASC->downSampledSBR = 1;
         }
-    }
+    }*/
 #endif
 
     faad_endbits(ld);

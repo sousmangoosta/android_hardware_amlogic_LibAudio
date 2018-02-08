@@ -276,7 +276,7 @@ UINT32 rm_parser_get_preroll(rm_parser* pParser)
 
 void rm_parser_set_index_offset(rm_parser* pParser, UINT32 offset)
 {
-    UINT32 ulRet = 0;
+    //UINT32 ulRet = 0;
 
     if (pParser) {
         ((rm_parser_internal*) pParser)->propHdr.index_offset = offset;
@@ -578,7 +578,7 @@ HX_RESULT rm_parser_seek_in_seek_table(rm_parser* pParser, INT32 lStreamNumber, 
 
 void rm_parser_file_seek(rm_parser* pParser, UINT32 ulOffset)
 {
-    HX_RESULT retVal = HXR_FAIL;
+    //HX_RESULT retVal = HXR_FAIL;
 
     if (pParser) {
         /* Get the internal parser struct */
@@ -590,7 +590,7 @@ void rm_parser_file_seek(rm_parser* pParser, UINT32 ulOffset)
 
 void rm_parser_file_skip(rm_parser* pParser, UINT32 ulOffset)
 {
-    HX_RESULT retVal = HXR_FAIL;
+    //HX_RESULT retVal = HXR_FAIL;
 
     if (pParser) {
         /* Get the internal parser struct */

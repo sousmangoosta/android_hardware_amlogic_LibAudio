@@ -45,7 +45,7 @@
 #include <android/log.h>
 #endif
 
-#define min(a,b) ( (a) < (b) ? (a) : (b) )
+//#define min(a,b) ( (a) < (b) ? (a) : (b) )
 
 /* MicroSoft channel definitions */
 #define SPEAKER_FRONT_LEFT             0x1
@@ -70,7 +70,7 @@
 
 #define DefaultReadSize 1024*10 //read count from kernel audio buf one time
 #define DefaultOutBufSize 1024*1024
-#define MAX_CHANNELS 6 /* make this higher to support files with more channels */
+//#define MAX_CHANNELS 6 /* make this higher to support files with more channels */
 
 //audio decoder buffer 6144 bytes
 #define AAC_INPUTBUF_SIZE   768 /* pick something big enough to hold a bunch of frames */
@@ -102,7 +102,7 @@ typedef struct FaadContext {
     int64_t endtime;
 } FaadContext;
 
-typedef(*findsyncfunc)(unsigned char *buf, int nBytes);
+//typedef int (*findsyncfunc)(unsigned char *buf, int nBytes);
 static const int adts_sample_rates[] = {96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 16000, 12000, 11025, 8000, 7350, 0, 0, 0};
 
 static int64_t gettime(void)
@@ -111,7 +111,7 @@ static int64_t gettime(void)
     gettimeofday(&tv, NULL);
     return (int64_t)tv.tv_sec * 1000000 + tv.tv_usec;
 }
-
+#if 0
 static long aacChannelConfig2wavexChannelMask(NeAACDecFrameInfo *hInfo)
 {
     if (hInfo->channels == 6 && hInfo->num_lfe_channels) {
@@ -152,9 +152,9 @@ static char *position2string(int position)
 
     return "";
 }
+#endif
 
-
-
+#if 0
 static int FindAdtsSRIndex(int sr)
 {
     int i;
@@ -214,7 +214,7 @@ static unsigned char *MakeAdtsHeader(int *dataSize, NeAACDecFrameInfo *hInfo, in
 
     return data;
 }
-
+#endif
 static unsigned get_frame_size(FaadContext *gFaadCxt)
 {
     int i;
@@ -298,7 +298,7 @@ static int audio_decoder_init(
 #ifndef WIN32
     audio_decoder_operations_t *adec_ops,
 #endif
-    char *outbuf, int *outlen, char *inbuf, int inlen, long *inbuf_consumed)
+    char *outbuf, int *outlen __unused, char *inbuf, int inlen, long *inbuf_consumed)
 {
     unsigned long samplerate;
     unsigned char channels;
@@ -319,14 +319,14 @@ retry:
 #if  1
     if (adec_ops->nAudioDecoderType == ACODEC_FMT_AAC_LATM) {
         islatm = 1;
-        int nSeekNum = AACFindLATMSyncWord(in_buf, inbuf_size);
+        int nSeekNum = AACFindLATMSyncWord((unsigned char *)in_buf, inbuf_size);
         if (nSeekNum == (inbuf_size - 2)) {
             audio_codec_print("[%s %d]%d bytes data not found latm sync header \n", __FUNCTION__,__LINE__, nSeekNum);
         } else {
             audio_codec_print("[%s %d]latm seek sync header cost %d,total %d,left %d \n", __FUNCTION__,__LINE__, nSeekNum, inbuf_size, inbuf_size - nSeekNum);
         }
         inbuf_size = inbuf_size - nSeekNum;
-        if (inbuf_size < (get_frame_size(gFaadCxt) + FRAME_SIZE_MARGIN)/*AAC_INPUTBUF_SIZE/2*/) {
+        if (inbuf_size < (int)(get_frame_size(gFaadCxt) + FRAME_SIZE_MARGIN)/*AAC_INPUTBUF_SIZE/2*/) {
             audio_codec_print("[%s %d]input size %d at least %d ,need more data \n", __FUNCTION__,__LINE__, inbuf_size, (get_frame_size(gFaadCxt) + FRAME_SIZE_MARGIN));
             *inbuf_consumed = inlen - inbuf_size;
             return AAC_ERROR_NO_ENOUGH_DATA;
@@ -342,7 +342,7 @@ retry:
     //config->dontUpSampleImplicitSBR = 1;
     NeAACDecSetConfiguration(gFaadCxt->hDecoder, config);
     int skipbytes=RSYNC_SKIP_BYTES;
-    if ((ret = NeAACDecInit(gFaadCxt->hDecoder, in_buf, inbuf_size, &samplerate, &channels, islatm,&skipbytes)) < 0) {
+    if ((ret = NeAACDecInit(gFaadCxt->hDecoder, (unsigned char *)in_buf, inbuf_size, &samplerate, &channels, islatm,&skipbytes)) < 0) {
         in_buf += skipbytes;
         inbuf_size -= skipbytes;
         NeAACDecClose(gFaadCxt->hDecoder);
@@ -352,7 +352,7 @@ retry:
         }
         audio_codec_print("init fail,inbuf_size %d \n", inbuf_size);
 
-        if (inbuf_size < (get_frame_size(gFaadCxt) + FRAME_SIZE_MARGIN) || skipbytes == 0) {
+        if (inbuf_size < (int)(get_frame_size(gFaadCxt) + FRAME_SIZE_MARGIN) || skipbytes == 0) {
             audio_codec_print("skipbytes/%d inbuf_size/%d get_frame_size()/%d ,need more data \n",skipbytes, inbuf_size, (get_frame_size(gFaadCxt) + FRAME_SIZE_MARGIN));
             *inbuf_consumed = inlen - inbuf_size;
             return AAC_ERROR_NO_ENOUGH_DATA;
@@ -367,7 +367,7 @@ retry:
     gFaadCxt->init_flag = 1;
     gFaadCxt->gChannels = channels;
     gFaadCxt->gSampleRate = samplerate;
-    audio_codec_print("[%s] Init OK adif_present :%d adts_present:%d latm_present:%d,sr %d,ch %d\n", __FUNCTION__, hDecoder->adif_header_present, hDecoder->adts_header_present, hDecoder->latm_header_present, samplerate, channels);
+    audio_codec_print("[%s] Init OK adif_present :%d adts_present:%d latm_present:%d,sr %lu,ch %d\n", __FUNCTION__, hDecoder->adif_header_present, hDecoder->adts_header_present, hDecoder->latm_header_present, samplerate, channels);
     return 0;
 }
 int audio_dec_decode(
@@ -402,7 +402,7 @@ int audio_dec_decode(
     if (!gFaadCxt->init_flag) {
         gFaadCxt->error_count = 0;
         audio_codec_print("begin audio_decoder_init,buf size %d  \n", dec_bufsize);
-        ret = audio_decoder_init(adec_ops, outbuf, outlen, dec_buf, dec_bufsize, &inbuf_consumed);
+        ret = audio_decoder_init(adec_ops, outbuf, outlen, dec_buf, dec_bufsize, (long *)&inbuf_consumed);
         if (ret ==  AAC_ERROR_NO_ENOUGH_DATA) {
             audio_codec_print("decoder buf size %d,cost %d byte input data ,but initiation failed.^_^ \n", inlen, inbuf_consumed);
             dec_bufsize -= inbuf_consumed;
@@ -413,7 +413,7 @@ int audio_dec_decode(
         dec_bufsize -= inbuf_consumed;
         gFaadCxt->init_cost += inbuf_consumed;
         gFaadCxt->endtime = gettime();
-        audio_codec_print(" MyFaadDecoder decoder init finished total cost %d bytes,consumed time %lld ms \n", gFaadCxt->init_cost, (gFaadCxt->endtime - gFaadCxt->starttime) / 1000);
+        //audio_codec_print(" MyFaadDecoder decoder init finished total cost %d bytes,consumed time %ld ms \n", gFaadCxt->init_cost, (gFaadCxt->endtime - gFaadCxt->starttime) / 1000);
         gFaadCxt->init_cost = 0;
         if (dec_bufsize < 0) {
             dec_bufsize = 0;
@@ -427,30 +427,30 @@ int audio_dec_decode(
     }
 #endif
     if (hDecoder->adts_header_present) {
-        int nSeekNum = AACFindADTSSyncWord(dec_buf, dec_bufsize);
+        int nSeekNum = AACFindADTSSyncWord((unsigned char *)dec_buf, dec_bufsize);
         if (nSeekNum == (dec_bufsize - 1)) {
             audio_codec_print("%d bytes data not found adts sync header \n", nSeekNum);
         }
         dec_bufsize = dec_bufsize - nSeekNum;
-        if (dec_bufsize < (get_frame_size(gFaadCxt) + FRAME_SIZE_MARGIN)/*AAC_INPUTBUF_SIZE/2*/) {
+        if (dec_bufsize < (int)(get_frame_size(gFaadCxt) + FRAME_SIZE_MARGIN)/*AAC_INPUTBUF_SIZE/2*/) {
             goto exit;
         }
     }
     if (hDecoder->latm_header_present) {
-        int nSeekNum = AACFindLATMSyncWord(dec_buf, dec_bufsize);
+        int nSeekNum = AACFindLATMSyncWord((unsigned char *)dec_buf, dec_bufsize);
         if (nSeekNum == (dec_bufsize - 2)) {
             audio_codec_print("%d bytes data not found latm sync header \n", nSeekNum);
         }
         dec_bufsize = dec_bufsize - nSeekNum;
-        if (dec_bufsize < (get_frame_size(gFaadCxt) + FRAME_SIZE_MARGIN)/*AAC_INPUTBUF_SIZE/2*/) {
+        if (dec_bufsize < (int)(get_frame_size(gFaadCxt) + FRAME_SIZE_MARGIN)/*AAC_INPUTBUF_SIZE/2*/) {
             goto exit;
         }
     }
-    sample_buffer = NeAACDecDecode(gFaadCxt->hDecoder, &frameInfo, dec_buf, dec_bufsize);
+    sample_buffer = NeAACDecDecode(gFaadCxt->hDecoder, &frameInfo, (unsigned char *)dec_buf, dec_bufsize);
     dec_bufsize -= frameInfo.bytesconsumed;
     if (frameInfo.channels < 0 || frameInfo.channels > 8) {
         audio_codec_print("[%s %d]ERR__Unvalid Nch/%d bytesconsumed/%d error/%d\n",
-                           __FUNCTION__,__LINE__,frameInfo.channels,frameInfo.bytesconsumed,frameInfo.error);
+                           __FUNCTION__,__LINE__,frameInfo.channels,(int)frameInfo.bytesconsumed,frameInfo.error);
         sample_buffer=NULL;
     }
     if (frameInfo.error == 0 && sample_buffer == NULL && hDecoder->latm_header_present) {
@@ -470,7 +470,7 @@ int audio_dec_decode(
             memset(sample_buffer, 0, 2 * frameInfo.samples);
             gFaadCxt->muted_count += frameInfo.samples;
         }
-        if ((outmaxlen - (*outlen)) >= (2 * frameInfo.samples)) {
+        if ((outmaxlen - (*outlen)) >= (int)(2 * frameInfo.samples)) {
             memcpy(outbuf + (*outlen), sample_buffer, 2 * frameInfo.samples);
             *outlen += 2 * frameInfo.samples;
             gFaadCxt->error_count = 0;

@@ -334,7 +334,7 @@ static inline void skip_bits_long(GetBitContext *s, int n)
  * @param n length in bits
  * @author BERO
  */
-static inline int get_xbits(GetBitContext *s, int n)
+/*static inline int get_xbits(GetBitContext *s, int n)
 {
     register int sign;
     register int32_t cache;
@@ -345,7 +345,7 @@ static inline int get_xbits(GetBitContext *s, int n)
     LAST_SKIP_BITS(re, s, n)
     CLOSE_READER(re, s)
     return (NEG_USR32(sign ^ cache, n) ^ sign) - sign;
-}
+}*/
 
 static inline int get_sbits(GetBitContext *s, int n)
 {
@@ -377,7 +377,7 @@ static inline unsigned int get_bits(GetBitContext *s, int n)
  * shows 1-17 bits.
  * Note, the alt bitstream reader can read up to 25 bits, but the libmpeg2 reader can't
  */
-static inline unsigned int show_bits(GetBitContext *s, int n)
+/*static inline unsigned int show_bits(GetBitContext *s, int n)
 {
     register int tmp;
     OPEN_READER(re, s)
@@ -386,7 +386,7 @@ static inline unsigned int show_bits(GetBitContext *s, int n)
     //    CLOSE_READER(re, s)
     return tmp;
 }
-
+*/
 static inline void skip_bits(GetBitContext *s, int n)
 {
     //Note gcc seems to optimize this to s->index+=n for the ALT_READER :))
@@ -417,15 +417,15 @@ static inline unsigned int get_bits1(GetBitContext *s)
 #endif
 }
 
-static inline unsigned int show_bits1(GetBitContext *s)
-{
-    return show_bits(s, 1);
-}
+//static inline unsigned int show_bits1(GetBitContext *s)
+//{
+//    return show_bits(s, 1);
+//}
 
-static inline void skip_bits1(GetBitContext *s)
-{
-    skip_bits(s, 1);
-}
+//static inline void skip_bits1(GetBitContext *s)
+//{
+//    skip_bits(s, 1);
+///}
 
 /**
  * reads 0-32 bits.
@@ -456,6 +456,7 @@ static inline int get_sbits_long(GetBitContext *s, int n)
 /**
  * shows 0-32 bits.
  */
+/*
 static inline unsigned int show_bits_long(GetBitContext *s, int n)
 {
     if (n <= 17) {
@@ -475,6 +476,7 @@ static inline int check_marker(GetBitContext *s, const char *msg)
 
     return bit;
 }
+*/
 
 /**
  * init GetBitContext.
@@ -556,9 +558,9 @@ static inline int get_xbits_trace(GetBitContext *s, int n, char *file, const cha
 #define get_xbits(s, n) get_xbits_trace(s, n, __FILE__, __PRETTY_FUNCTION__, __LINE__)
 #endif
 
-static inline int get_bits_left(GetBitContext *gb)
-{
-    return gb->size_in_bits - get_bits_count(gb);
-}
+//static inline int get_bits_left(GetBitContext *gb)
+//{
+//    return gb->size_in_bits - get_bits_count(gb);
+//}
 
 #endif /* AVCODEC_GET_BITS_H */

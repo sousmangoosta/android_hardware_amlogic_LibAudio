@@ -964,7 +964,7 @@ HX_RESULT rv_depacki_create_frame(rv_depack_internal* pInt,
         /* Init local variables */
         rv_frame* pFrame   = HXNULL;
         UINT32           ulSize   = 0;
-        UINT32           ulSeqNum = 0;
+        //UINT32           ulSeqNum = 0;
         UINT32           ulFlags  = 0;
         /* Clean out any existing frame */
         rv_depacki_cleanup_frame(pInt, ppFrame);
@@ -1055,7 +1055,7 @@ HX_RESULT rv_depacki_create_frame(rv_depack_internal* pInt,
     return retVal;
 }
 
-HX_RESULT rv_depacki_seek(rv_depack_internal* pInt, UINT32 ulTime)
+HX_RESULT rv_depacki_seek(rv_depack_internal* pInt, UINT32 ulTime __unused)
 {
     HX_RESULT retVal = HXR_FAIL;
 

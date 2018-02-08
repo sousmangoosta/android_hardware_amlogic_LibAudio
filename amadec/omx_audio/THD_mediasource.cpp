@@ -7,9 +7,9 @@
 
 extern "C" int read_buffer(unsigned char *buffer,int size);
 
-#define LOG_TAG "THD_Medissource"
-#define ALOGI(...) __android_log_print(ANDROID_LOG_INFO,LOG_TAG,__VA_ARGS__)
-#define ALOGE(...) __android_log_print(ANDROID_LOG_ERROR,LOG_TAG,__VA_ARGS__)
+//#define LOG_TAG "THD_Medissource"
+//#define ALOGI(...) __android_log_print(ANDROID_LOG_INFO,LOG_TAG,__VA_ARGS__)
+//#define ALOGE(...) __android_log_print(ANDROID_LOG_ERROR,LOG_TAG,__VA_ARGS__)
 
 namespace android {
 
@@ -76,7 +76,7 @@ int THD_MediaSource::GetReadedBytes()
     bytes_used=bytes_readed_sum-bytes_readed_sum_pre;
     if(bytes_used<0)
     {
-        ALOGI("[%s]bytes_readed_sum(%lld) < bytes_readed_sum_pre(%lld) \n",__FUNCTION__,bytes_readed_sum,bytes_readed_sum_pre);
+        ALOGI("[%s]bytes_readed_sum(%ld) < bytes_readed_sum_pre(%ld) \n",__FUNCTION__, (long)bytes_readed_sum, (long)bytes_readed_sum_pre);
         bytes_used=0;
     }
     bytes_readed_sum_pre=bytes_readed_sum;
@@ -88,11 +88,11 @@ sp<MetaData> THD_MediaSource::getFormat() {
     return mMeta;
 }
 
-status_t THD_MediaSource::start(MetaData *params)
+status_t THD_MediaSource::start(MetaData *params __unused)
 {
     ALOGI("%s %d \n",__FUNCTION__,__LINE__);
     mGroup = new MediaBufferGroup;
-    mGroup->add_buffer(new MediaBuffer(4096));
+    mGroup->add_buffer(MediaBufferBase::Create(4096));
     mStarted = true;
     return OK;	
 }
@@ -137,7 +137,7 @@ int THD_MediaSource::MediaSourceRead_buffer(unsigned char *buffer,int size)
     }
 }
 
-status_t THD_MediaSource::read(MediaBuffer **out, const ReadOptions *options)
+status_t THD_MediaSource::read(MediaBufferBase **out, const ReadOptions *options __unused)
 {
     *out = NULL;
     uint     fourheader = 0;  //au size and crc check and timing
@@ -145,7 +145,7 @@ status_t THD_MediaSource::read(MediaBuffer **out, const ReadOptions *options)
     uchar    byte; 
     uchar    byte2[2];
     uint     ausize;          //access unit size(byte)
-    uint     i = 0;
+    //uint     i = 0;
 	
     if(!mSyncMain){
         while(1)//max frame length is 4000 bytes
@@ -187,7 +187,7 @@ status_t THD_MediaSource::read(MediaBuffer **out, const ReadOptions *options)
     }
 	
    
-    MediaBuffer *buffer;
+    MediaBufferBase *buffer;
     status_t err = mGroup->acquire_buffer(&buffer);
     if (err != OK) {
         ALOGI("acquire_buffer buffer failed.\n");
@@ -197,7 +197,7 @@ status_t THD_MediaSource::read(MediaBuffer **out, const ReadOptions *options)
     if(syncheader == TRUEHDSYNC){
         memcpy((uchar *)(buffer->data()), &fourheader, 4);
         memcpy((uchar *)((unsigned long)buffer->data() + 4), &syncheader, 4);
-        if (MediaSourceRead_buffer((uchar*)((unsigned long)buffer->data() + 8), ausize - 8) != (ausize - 8)) {
+        if (MediaSourceRead_buffer((uchar*)((unsigned long)buffer->data() + 8), ausize - 8) != (int)(ausize - 8)) {
             ALOGI("[%s %d]stream read failed\n",__FUNCTION__,__LINE__); 
             buffer->release();
             buffer = NULL;
@@ -208,7 +208,7 @@ status_t THD_MediaSource::read(MediaBuffer **out, const ReadOptions *options)
         ALOGI("[%s:%d] sample_rate = %d\n", __FUNCTION__, __LINE__, sample_rate);
     }else{
         memcpy((uchar *)(buffer->data()), &byte2, 2);	
-        if (MediaSourceRead_buffer((uchar*)((unsigned long)buffer->data() + 2), ausize - 2) != (ausize - 2)) {
+        if (MediaSourceRead_buffer((uchar*)((unsigned long)buffer->data() + 2), ausize - 2) != (int)(ausize - 2)) {
             ALOGI("[%s %d]stream read failed\n",__FUNCTION__,__LINE__); 
             buffer->release();
             buffer = NULL;
@@ -218,8 +218,8 @@ status_t THD_MediaSource::read(MediaBuffer **out, const ReadOptions *options)
 	
 	
     buffer->set_range(0, ausize);
-    buffer->meta_data()->setInt64(kKeyTime, mCurrentTimeUs);
-    buffer->meta_data()->setInt32(kKeyIsSyncFrame, 1);
+    buffer->meta_data().setInt64(kKeyTime, mCurrentTimeUs);
+    buffer->meta_data().setInt32(kKeyIsSyncFrame, 1);
 
     *out = buffer;
     return OK;

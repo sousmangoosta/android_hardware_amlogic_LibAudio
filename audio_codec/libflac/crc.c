@@ -38,6 +38,13 @@ static struct {
 static AVCRC av_crc_table[AV_CRC_MAX][257];
 #endif
 
+static uint32_t bswap_32(uint32_t x)
+{
+    x = ((x << 8) & 0xFF00FF00) | ((x >> 8) & 0x00FF00FF);
+    x = (x >> 16) | (x << 16);
+    return x;
+}
+
 /**
  * Initializes a CRC table.
  * @param ctx must be an array of size sizeof(AVCRC)*257 or sizeof(AVCRC)*1024
@@ -81,7 +88,7 @@ int av_crc_init(AVCRC *ctx, int le, int bits, uint32_t poly, int ctx_size)
     }
     ctx[256] = 1;
     //#if !CONFIG_SMALL
-    if (ctx_size >= sizeof(AVCRC) * 1024)
+    if (ctx_size >= (int)(sizeof(AVCRC) * 1024))
         for (i = 0; i < 256; i++)
             for (j = 0; j < 3; j++) {
                 ctx[256 * (j + 1) + i] = (ctx[256 * j + i] >> 8) ^ ctx[ ctx[256 * j + i] & 0xFF ];

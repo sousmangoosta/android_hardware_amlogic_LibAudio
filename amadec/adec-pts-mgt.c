@@ -24,6 +24,7 @@
 #include "Amsysfsutils.h"
 #include "amconfigutils.h"
 
+#define LOG_TAG "adec-pts-mgt"
 #define DROP_PCM_DURATION_THRESHHOLD 4 //unit:s
 #define DROP_PCM_MAX_TIME 1000 // unit :ms
 #define DROP_PCM_PTS_DIFF_THRESHHOLD   90000*10
@@ -31,7 +32,7 @@
 
 int adec_pts_droppcm(aml_audio_dec_t *audec);
 int vdec_pts_resume(void);
-static int vdec_pts_pause(void);
+//static int vdec_pts_pause(void);
 int droppcm_use_size(aml_audio_dec_t *audec, int drop_size);
 void droppcm_prop_ctrl(int *audio_ahead, int *pts_ahead_val);
 int droppcm_get_refpts(aml_audio_dec_t *audec, unsigned long *refpts);
@@ -84,7 +85,7 @@ static int mysysfs_get_sysfs_int16(const char *path)
     }
     return val;
 }
-
+/*
 static int mysysfs_get_sysfs_int(const char *path)
 {
     int fd;
@@ -99,13 +100,13 @@ static int mysysfs_get_sysfs_int(const char *path)
         adec_print("unable to open file %s,err: %s", path, strerror(errno));
     }
     return val;
-}
-
+}*/
+/*
 static int set_tsync_enable(int enable)
 {
     char *path = "/sys/class/tsync/enable";
     return amsysfs_set_sysfs_int(path, enable);
-}
+}*/
 /**
  * \brief calc current pts
  * \param audec pointer to audec
@@ -121,7 +122,7 @@ unsigned long adec_calc_pts(aml_audio_dec_t *audec)
     dsp_ops = &audec->adsp_ops;
 
     pts = dsp_ops->get_cur_pts(dsp_ops);
-    if (pts == -1) {
+    if ((int)pts == -1) {
         adec_print("get get_cur_pts failed\n");
         return -1;
     }
@@ -137,7 +138,7 @@ unsigned long adec_calc_pts(aml_audio_dec_t *audec)
         return pts;
     }
 
-    int diff = abs(delay_pts - pts);
+    int diff = abs((int)(delay_pts - pts));
     // in some case, audio latency got from audiotrack is bigger than pts<hw not enabled>, so when delay_pts-pts < 100ms ,so set apts to 0.
     //because 100ms pcr-apts diff cause  apts reset .
     if (delay_pts/*+audec->first_apts*/ < pts) {
@@ -156,11 +157,11 @@ unsigned long adec_calc_pts(aml_audio_dec_t *audec)
 int adec_pts_start(aml_audio_dec_t *audec)
 {
     unsigned long pts = 0;
-    char *file;
+    //char *file;
     char buf[64];
     dsp_operations_t *dsp_ops;
     char value[PROPERTY_VALUE_MAX] = {0};
-    int tsync_mode;
+    //int tsync_mode;
     unsigned long first_apts = 0;
 
     adec_print("adec_pts_start");
@@ -178,12 +179,12 @@ int adec_pts_start(aml_audio_dec_t *audec)
     }
 
     first_apts = adec_calc_pts(audec);
-    if (sysfs_get_int(TSYNC_FIRSTAPTS, &audec->first_apts) == -1) {
+    if (sysfs_get_int(TSYNC_FIRSTAPTS, (unsigned long *)&audec->first_apts) == -1) {
         adec_print("## [%s::%d] unable to get first_apts! \n", __FUNCTION__, __LINE__);
         return -1;
     }
 
-    adec_print("av sync threshold is %d , no_first_apts=%d,first_apts = 0x%x, audec->first_apts = 0x%x \n", audec->avsync_threshold, audec->no_first_apts, first_apts, audec->first_apts);
+    adec_print("av sync threshold is %d , no_first_apts=%d,first_apts = 0x%lx, audec->first_apts = 0x%lx \n", audec->avsync_threshold, audec->no_first_apts, first_apts, (long)audec->first_apts);
 
 
     dsp_ops->last_pts_valid = 0;
@@ -228,7 +229,7 @@ int adec_pts_start(aml_audio_dec_t *audec)
     } else {
         pts = adec_calc_pts(audec);
 
-        if (pts == -1) {
+        if ((int)pts == -1) {
 
             adec_print("pts==-1");
 
@@ -249,7 +250,7 @@ int adec_pts_start(aml_audio_dec_t *audec)
 
 static void enable_slowsync_repeate()
 {
-    const char * slowsync_path = "/sys/class/tsync/slowsync_enable";
+    //const char * slowsync_path = "/sys/class/tsync/slowsync_enable";
     const char * slowsync_repeate_path = "/sys/class/video/slowsync_repeat_enable";
     //amsysfs_set_sysfs_int(slowsync_path, 1);
     amsysfs_set_sysfs_int(slowsync_repeate_path, 1);
@@ -259,7 +260,7 @@ static void enable_slowsync_repeate()
 int adec_pts_droppcm(aml_audio_dec_t *audec)
 {
     unsigned long refpts, apts, oldapts;
-    int ret, drop_size, droppts, dropms;
+    int drop_size, droppts, dropms;
     char value[PROPERTY_VALUE_MAX] = {0};
     int64_t starttime, endtime;
     int audio_ahead = 0;
@@ -330,7 +331,7 @@ int adec_pts_droppcm(aml_audio_dec_t *audec)
                 adec_print("Unable to get checkin_firstvpts, failed to pre_droppcm\n");
                 break;
             } else if (checkin_firstvpts) {
-                adec_print("get checkin_firstvpts, checkin_firstvpts=0x%x\n",checkin_firstvpts);
+                adec_print("get checkin_firstvpts, checkin_firstvpts=0x%lx\n",checkin_firstvpts);
                 break;
             }
             count++;
@@ -339,7 +340,7 @@ int adec_pts_droppcm(aml_audio_dec_t *audec)
         if (checkin_firstvpts) {
             apts = adec_calc_pts(audec);
             diff = (apts > checkin_firstvpts) ? (apts - checkin_firstvpts) : (checkin_firstvpts - apts);
-            adec_print("before drop pre --apts 0x%x,checkin_firstvpts 0x%x,apts %s, diff 0x%x\n", apts, checkin_firstvpts, (apts > checkin_firstvpts) ? "big" : "small", diff);
+            adec_print("before drop pre --apts 0x%lx,checkin_firstvpts 0x%lx,apts %s, diff 0x%x\n", apts, checkin_firstvpts, (apts > checkin_firstvpts) ? "big" : "small", diff);
             if ((apts < checkin_firstvpts) && (diff < DROP_PCM_PTS_DIFF_THRESHHOLD)) {
                 droppts = checkin_firstvpts - apts;
                 audec->droppcm_ms = droppts / 90;
@@ -353,7 +354,7 @@ int adec_pts_droppcm(aml_audio_dec_t *audec)
                 oldapts = apts;
                 apts = adec_calc_pts(audec);
                 diff = (apts > checkin_firstvpts) ? (apts - checkin_firstvpts) : (checkin_firstvpts - apts);
-                adec_print("after drop pre:--apts 0x%x,droped:0x%x, checkin_firstvpts 0x%x,apts %s, diff 0x%x\n", apts, apts - oldapts, checkin_firstvpts, (apts > checkin_firstvpts) ? "big" : "small", diff);
+                adec_print("after drop pre:--apts 0x%lx,droped:0x%lx, checkin_firstvpts 0x%lx,apts %s, diff 0x%x\n", apts, apts - oldapts, checkin_firstvpts, (apts > checkin_firstvpts) ? "big" : "small", diff);
             }
         }
     }
@@ -376,20 +377,20 @@ int adec_pts_droppcm(aml_audio_dec_t *audec)
 
         first_apts = adec_calc_pts(audec);
 
-        if (sysfs_get_int(TSYNC_FIRSTAPTS, &audec->first_apts) == -1) {
+        if (sysfs_get_int(TSYNC_FIRSTAPTS, (unsigned long *)&audec->first_apts) == -1) {
             adec_print("## [%s::%d] unable to get first_apts! \n", __FUNCTION__, __LINE__);
             return -1;
         }
         count++;
         amthreadpool_thread_usleep(50000); // 50ms
-        adec_print("wait audec->first_apts first_apts = 0x%x, audec->first_apts = 0x%x\n", first_apts, audec->first_apts);
+        adec_print("wait audec->first_apts first_apts = 0x%lx, audec->first_apts = 0x%lx\n", first_apts, (long)audec->first_apts);
     }
     diff = (audec->first_apts > refpts) ? (audec->first_apts - refpts) : (refpts - audec->first_apts);
-    adec_print("before drop --audec->first_apts 0x%x,refpts 0x%x,audec->first_apts %s, diff 0x%x\n", audec->first_apts, refpts, (audec->first_apts > refpts) ? "big" : "small", diff);
+    adec_print("before drop --audec->first_apts 0x%lx,refpts 0x%lx,audec->first_apts %s, diff 0x%x\n", (long)audec->first_apts, refpts, (audec->first_apts > refpts) ? "big" : "small", diff);
     {
         sysfs_get_int(TSYNC_PCRSCR, &cur_pcr);
         ioctl(audec->adsp_ops.amstream_fd, AMSTREAM_IOC_AB_STATUS, (unsigned long)&am_io);
-        adec_print("before drop ab_level=%x, cur_pcr=%x", am_io.status.data_len, cur_pcr);
+        adec_print("before drop ab_level=%x, cur_pcr=%lx", am_io.status.data_len, cur_pcr);
     }
     if (property_get("media.amplayer.sync_switch_ms", value, NULL) > 0) {
         sync_switch_ms = atoi(value);
@@ -416,7 +417,7 @@ int adec_pts_droppcm(aml_audio_dec_t *audec)
     }
 #endif
     // calculate ahead pcm size
-    droppcm_prop_ctrl(&audio_ahead, &pts_ahead_val);
+    droppcm_prop_ctrl(&audio_ahead, (int *)&pts_ahead_val);
 
     // drop pcm
     droppts = refpts - audec->first_apts + pts_ahead_val * audio_ahead;
@@ -438,11 +439,11 @@ int adec_pts_droppcm(aml_audio_dec_t *audec)
     oldapts = audec->first_apts;
     apts = adec_calc_pts(audec);
     diff = (apts > refpts) ? (apts - refpts) : (refpts - apts);
-    adec_print("after drop:--apts 0x%x,droped:0x%x, vpts 0x%x,apts %s, diff 0x%x\n", apts, apts - oldapts, refpts, (apts > refpts) ? "big" : "small", diff);
+    adec_print("after drop:--apts 0x%lx,droped:0x%lx, vpts 0x%lx,apts %s, diff 0x%x\n", apts, apts - oldapts, refpts, (apts > refpts) ? "big" : "small", diff);
 		if (diff > DROP_PCM_RESET_PCR_THRESHOLD){
 		    char buf[64];
 				sprintf(buf, "0x%lx", apts);
-				adec_print("## [%s::%d] reset pcr =0x%x \n", __FUNCTION__, __LINE__);
+				adec_print("## [%s::%d] reset pcr \n", __FUNCTION__, __LINE__);
         if (amsysfs_set_sysfs_str(TSYNC_PCRSCR, buf)){
 					adec_print("## [%s::%d] reset pcr error \n", __FUNCTION__, __LINE__);
 				}
@@ -451,11 +452,11 @@ int adec_pts_droppcm(aml_audio_dec_t *audec)
     {
         sysfs_get_int(TSYNC_PCRSCR, &cur_pcr);
         ioctl(audec->adsp_ops.amstream_fd, AMSTREAM_IOC_AB_STATUS, (unsigned long)&am_io);
-        adec_print("after drop ab_level=%x, cur_pcr=%x", am_io.status.data_len, cur_pcr);
+        adec_print("after drop ab_level=%x, cur_pcr=%lx", am_io.status.data_len, cur_pcr);
     }
 
     endtime = gettime();
-    adec_print("==starttime is :%lld ms  endtime is:%lld ms   usetime:%lld ms  \n", starttime / 1000 , endtime / 1000 , (endtime - starttime) / 1000);
+    adec_print("==starttime is :%ld ms endtime is:%ld ms   usetime:%ld ms  \n", (long)starttime / 1000 , (long)endtime / 1000 , (long)(endtime - starttime) / 1000);
 
     return 0;
 }
@@ -530,8 +531,8 @@ int adec_refresh_pts(aml_audio_dec_t *audec)
         // 170 ms  audio hal have  triggered the output hw.
         latency = audec->aout_ops.latency(audec);
         if (latency > 0  && ((audec->pcm_bytes_readed * 1000 / (samplerate * channels * 2)) >= wait)) {
-            adec_print("unable to getsystime--\n\n [[[%lld,%d,%d,%d,%d]]]\n",
-            audec->pcm_bytes_readed
+            adec_print("unable to getsystime--\n\n [[[%ld,%d,%d,%d,%d]]]\n",
+            (long)audec->pcm_bytes_readed
             ,samplerate
             ,channels
             ,wait,
@@ -544,22 +545,22 @@ int adec_refresh_pts(aml_audio_dec_t *audec)
     memset(buf, 0, sizeof(buf));
 
     systime = audec->adsp_ops.get_cur_pcrscr(&audec->adsp_ops);
-    if (systime == -1) {
-        adec_print("unable to getsystime");
-        audec->pcrscr64 = 0;
-        return -1;
-    }
+    //if (systime == -1) {
+    //    adec_print("unable to getsystime");
+    //    audec->pcrscr64 = 0;
+    //    return -1;
+    //}
 
     /* get audio time stamp */
     pts = adec_calc_pts(audec);
-    if (pts != -1 && (apts_start_flag != audec->apts_start_flag)) {
+    if ((apts_start_flag != audec->apts_start_flag)) {
         adec_print("audio pts start from 0x%lx", pts);
         sprintf(buf, "AUDIO_START:0x%lx", pts);
         if (amsysfs_set_sysfs_str(TSYNC_EVENT, buf) == -1) {
             return -1;
         }
     }
-    if (pts == -1 || last_pts == pts) {
+    if (last_pts == pts) {
         //close(fd);
         //if (pts == -1) {
         audec->pcrscr64 = (int64_t)systime;
@@ -568,7 +569,7 @@ int adec_refresh_pts(aml_audio_dec_t *audec)
     }
 #if 1
     unsigned int u32_vpts = mysysfs_get_sysfs_int16(TSYNC_VPTS);
-    unsigned int last_checkin_apts = mysysfs_get_sysfs_int16(TSYNC_LAST_CHECKIN_APTS);
+    //unsigned int last_checkin_apts = mysysfs_get_sysfs_int16(TSYNC_LAST_CHECKIN_APTS);
     //int play_mode = mysysfs_get_sysfs_int(TSYNC_PCR_PLAY_MODE);
 
     if (audec->tsync_mode == TSYNC_MODE_PCRMASTER  && audec->pcrtsync_enable
@@ -579,22 +580,22 @@ int adec_refresh_pts(aml_audio_dec_t *audec)
         audec->apts64 = apts64;
         audec->pcrscr64 = pcrscr64;
 
-        if (audec->adis_flag && abs(audec->pcrscr64 - audec->last_apts64) > APTS_DISCONTINUE_THRESHOLD) {
+        if (audec->adis_flag && abs((int)(audec->pcrscr64 - audec->last_apts64)) > APTS_DISCONTINUE_THRESHOLD) {
             audec->adis_flag = 0;
-            adec_print("[%s:%d] pcr discontinue: last_pcr:%llx, pcr:%llx, --\n", __FUNCTION__, __LINE__, audec->last_pcrscr64, audec->pcrscr64);
+            adec_print("[%s:%d] pcr discontinue: last_pcr:%lx, pcr:%lx, --\n", __FUNCTION__, __LINE__, (long)audec->last_pcrscr64, (long)audec->pcrscr64);
         }
         audec->last_pcrscr64 = pcrscr64;
         if (apts64 < audec->last_apts64) {
             audec->last_apts64 = apts64;
         }
 
-        unsigned int adiff = (unsigned int)((int64_t)last_checkin_apts - apts64);
-        adec_print("## tsync_mode:%d, pcr:%llx,apts:%llx, u32_vpts = 0x%x,lastapts:%llx, flag:%d,%d,---\n",
-            audec->tsync_mode, pcrscr64, apts64, u32_vpts, audec->last_apts64, pcrmaster_droppcm_flag, audec->adis_flag);
+        //unsigned int adiff = (unsigned int)((int64_t)last_checkin_apts - apts64);
+        adec_print("## tsync_mode:%d, pcr:%lx,apts:%lx, u32_vpts = 0x%x,lastapts:%lx, flag:%d,%d,---\n",
+            audec->tsync_mode, (long)pcrscr64, (long)apts64, u32_vpts, (long)audec->last_apts64, pcrmaster_droppcm_flag, audec->adis_flag);
         //adec_print("## tsync_mode:%d,apts:%llx,last_checkin_apts=0x%x,diff=%ld, play_mode=%d\n",
         //    audec->tsync_mode, apts64, last_checkin_apts, adiff, play_mode);
         // drop pcm
-        if (pcrscr64 - apts64 > audec->pcrmaster_droppcm_thsh && abs(pcrscr64 - apts64) < 3 * 90000  && abs(u32_vpts - apts64) >= 45000) {
+        if (pcrscr64 - apts64 > audec->pcrmaster_droppcm_thsh && abs((int)(pcrscr64 - apts64)) < 3 * 90000  && abs((int)(u32_vpts - apts64)) >= 45000) {
             if (pcrmaster_droppcm_flag++ > 20) {
                 int drop_size, droppts;
                 droppts = pcrscr64 - apts64;
@@ -612,13 +613,13 @@ int adec_refresh_pts(aml_audio_dec_t *audec)
         }
     }
 #endif
-    if ((abs(pts - last_pts) > APTS_DISCONTINUE_THRESHOLD) && (audec->adsp_ops.last_pts_valid)) {
+    if ((abs((int)(pts - last_pts)) > APTS_DISCONTINUE_THRESHOLD) && (audec->adsp_ops.last_pts_valid)) {
         /* report audio time interruption */
         adec_print("pts = %lx, last pts = %lx, u32_vpts=0x%x, pcr=0x%lx\n", pts, last_pts, u32_vpts, systime);
 
-        adec_print("audio time interrupt: 0x%lx->0x%lx, 0x%lx\n", last_pts, pts, abs(pts - last_pts));
+        adec_print("audio time interrupt: 0x%lx->0x%lx, 0x%x\n", last_pts, pts, abs((int)(pts - last_pts)));
         int tsync_pcr_discontinue = 0;
-        unsigned int adiff = (unsigned int)((unsigned long)last_checkin_apts - pts);
+        //unsigned int adiff = (unsigned int)((unsigned long)last_checkin_apts - pts);
         if (audec->tsync_mode == TSYNC_MODE_PCRMASTER) {
             tsync_pcr_discontinue = mysysfs_get_sysfs_int16(TSYNC_PCR_DISCONTINUE);
             adec_print("%s,tsync_pcr_discontinue=0x%x-\n",__FUNCTION__,tsync_pcr_discontinue);
@@ -690,7 +691,7 @@ int adec_refresh_pts(aml_audio_dec_t *audec)
     audec->adsp_ops.last_audio_pts = pts;
     audec->adsp_ops.last_pts_valid = 1;
 
-    if (abs(pts - systime) < audec->avsync_threshold) {
+    if (abs((int)(pts - systime)) < audec->avsync_threshold) {
         apts_interrupt = 0;
         return 0;
     } else if (apts_interrupt > 0) {
@@ -710,9 +711,9 @@ int adec_refresh_pts(aml_audio_dec_t *audec)
         many thread update the pts related infos.
         */
         unsigned long re_getpts = adec_calc_pts(audec);
-        if (abs(pts - re_getpts) > 900) { /*100 ms * 10%*/
+        if (abs((int)(pts - re_getpts)) > 900) { /*100 ms * 10%*/
             /*ignore this diff.*/
-            adec_print("## [%s::%d] ixet apts: %d ,%d \n",
+            adec_print("## [%s::%d] ixet apts: %ld ,%ld \n",
                 __FUNCTION__, __LINE__,
             pts, re_getpts);
             return 0;
@@ -757,13 +758,13 @@ int adec_refresh_pts(aml_audio_dec_t *audec)
         sprintf(buf, "0x%lx", pts);
         ret_val = amsysfs_set_sysfs_str(TSYNC_APTS, buf);
     }
-    if (ret_val == -1) {
-        adec_print("unable to open file %s,err: %s", TSYNC_APTS, strerror(errno));
-        return -1;
-    }
-    if (abs(pts - systime) >= 90000 / 10) {
+    //if (ret_val == -1) {
+    //    adec_print("unable to open file %s,err: %s", TSYNC_APTS, strerror(errno));
+    //    return -1;
+    //}
+    //if (abs(pts - systime) >= 90000 / 10) {
         //adec_print("report apts as 0x%x,system pts=0x%x, difference= %ld\n", pts, systime, (pts - systime));
-    }
+   // }
     return 0;
 }
 
@@ -789,7 +790,7 @@ int avsync_en(int e)
  */
 int track_switch_pts(aml_audio_dec_t *audec)
 {
-    unsigned long vpts;
+    //unsigned long vpts;
     unsigned long apts;
     unsigned long pcr;
     char buf[32];
@@ -797,34 +798,36 @@ int track_switch_pts(aml_audio_dec_t *audec)
     memset(buf, 0, sizeof(buf));
 
     pcr = audec->adsp_ops.get_cur_pcrscr(&audec->adsp_ops);
-    if (pcr == -1) {
-        adec_print("unable to get pcr");
-        return 1;
-    }
+    //if (pcr == -1) {
+    //    adec_print("unable to get pcr");
+    //    return 1;
+    //}
 
     apts = adec_calc_pts(audec);
-    if (apts == -1) {
-        adec_print("unable to get apts");
-        return 1;
-    }
+    //if (apts == -1) {
+   //     adec_print("unable to get apts");
+    //    return 1;
+    //}
 
     if ((apts > pcr) && (apts - pcr > 0x100000)) {
         return 0;
     }
 
-    if (abs(apts - pcr) < audec->avsync_threshold || (apts <= pcr)) {
+    if (abs((int)(apts - pcr)) < audec->avsync_threshold || (apts <= pcr)) {
         return 0;
     } else {
         return 1;
     }
 
 }
+/*
 static int vdec_pts_pause(void)
 {
     char *path = "/sys/class/video_pause";
     return amsysfs_set_sysfs_int(path, 1);
 
 }
+*/
 int vdec_pts_resume(void)
 {
     adec_print("vdec_pts_resume\n");
@@ -836,7 +839,7 @@ int droppcm_use_size(aml_audio_dec_t *audec, int drop_size)
 {
     char value[PROPERTY_VALUE_MAX] = {0};
     char buffer[DROPPCM_TMPBUF_SIZE];
-    int drop_duration = drop_size / audec->channels / 2 / audec->samplerate;
+    //int drop_duration = drop_size / audec->channels / 2 / audec->samplerate;
     int nDropCount = 0;
     int size = drop_size;
     int ret = 0;
@@ -893,7 +896,7 @@ int droppcm_use_size(aml_audio_dec_t *audec, int drop_size)
         //adec_print("==drop_size=%d, ret=%d, nDropCount:%d apts=0x%x,-----------------\n",drop_size, ret, nDropCount,apts);
         nDropConsumeTime = gettime() - start_time;
         if (nDropConsumeTime / 1000 > drop_max_time) {
-            adec_print("==ret:%d no pcm nDropCount:%d ,nDropConsumeTime:%lld reached drop_max_time:%d, \n", ret, nDropCount, nDropConsumeTime / 1000, drop_max_time);
+            adec_print("==ret:%d no pcm nDropCount:%d ,nDropConsumeTime:%ld reached drop_max_time:%d, \n", ret, nDropCount, (long)nDropConsumeTime / 1000, drop_max_time);
             drop_size -= ret;
             ret = -1;
             break;
@@ -919,7 +922,7 @@ int droppcm_use_size(aml_audio_dec_t *audec, int drop_size)
     if (buffer_raw != NULL) {
         free(buffer_raw);
     }
-    adec_print("after droppcm: drop_size=%d, droped:%d, nDropConsumeTime:%lld us,---\n", drop_size, size - drop_size, nDropConsumeTime);
+    adec_print("after droppcm: drop_size=%d, droped:%d, nDropConsumeTime:%ld us,---\n", drop_size, size - drop_size, (long)nDropConsumeTime);
 
     return ret;
 }
@@ -981,7 +984,7 @@ int droppcm_get_refpts(aml_audio_dec_t *audec, unsigned long *refpts)
             adec_print("## [%s::%d] unable to get vpts! \n", __FUNCTION__, __LINE__);
             return -1;
         }
-        adec_print("## [%s::%d] default vpts:0x%x, ---\n", __FUNCTION__, __LINE__, *refpts);
+        adec_print("## [%s::%d] default vpts:0x%lx, ---\n", __FUNCTION__, __LINE__, *refpts);
     } else if (tsync_mode == TSYNC_MODE_PCRMASTER && !strcmp(tsync_mode_str, "pcrmaster")) {
         if (sysfs_get_int(TSYNC_PCRSCR, refpts) == -1) {
             adec_print("## [%s::%d] unable to get pts_pcrscr! \n", __FUNCTION__, __LINE__);
@@ -995,12 +998,12 @@ int droppcm_get_refpts(aml_audio_dec_t *audec, unsigned long *refpts)
             sysfs_get_int(TSYNC_PCRSCR, refpts);
             //amthreadpool_thread_usleep(100000);
             wait_count++;
-            adec_print("## [%s::%d] wait_count = %d, refpts = 0x%x ---\n", __FUNCTION__, __LINE__, wait_count, *refpts);
+            adec_print("## [%s::%d] wait_count = %d, refpts = 0x%lx ---\n", __FUNCTION__, __LINE__, wait_count, *refpts);
             if (wait_count == 1) { //wait 2s
                 break;
             }
         }
-        adec_print("## [%s::%d] pcrmaster, refpts:0x%x, ---\n", __FUNCTION__, __LINE__, *refpts);
+        adec_print("## [%s::%d] pcrmaster, refpts:0x%lx, ---\n", __FUNCTION__, __LINE__, *refpts);
     }
 
     memset(value, 0, sizeof(value));
@@ -1051,7 +1054,7 @@ int droppcm_get_refpts(aml_audio_dec_t *audec, unsigned long *refpts)
         }
         amthreadpool_thread_usleep(10000); // 10ms
     }
-    adec_print("## [%s::%d] firstvpts:0x%x, use:%lld us, maxtime:%d ms, ---\n", __FUNCTION__, __LINE__, firstvpts, gettime() - start_time, circount);
+    adec_print("## [%s::%d] firstvpts:0x%lx, use:%ld us, maxtime:%d ms, ---\n", __FUNCTION__, __LINE__, firstvpts, (long)(gettime() - start_time), circount);
 
     if (sysfs_get_int(TSYNC_VPTS, &cur_vpts) == -1) {
         adec_print("## [%s::%d] unable to get vpts! \n", __FUNCTION__, __LINE__);
@@ -1073,7 +1076,7 @@ int droppcm_get_refpts(aml_audio_dec_t *audec, unsigned long *refpts)
             *refpts = cur_vpts;
         }
     }
-    adec_print("## [%s::%d] cur_vpts:0x%x,checkin_firstvpts=0x%x,firstvpts:0x%x refpts:0x%x, ---\n",
+    adec_print("## [%s::%d] cur_vpts:0x%lx,checkin_firstvpts=0x%lx,firstvpts:0x%lx refpts:0x%lx, ---\n",
     __FUNCTION__, __LINE__, cur_vpts, checkin_firstvpts, firstvpts, *refpts);
 
 
@@ -1082,7 +1085,7 @@ int droppcm_get_refpts(aml_audio_dec_t *audec, unsigned long *refpts)
 
 int adec_get_tsync_info(int *tsync_mode)
 {
-    char value[PROPERTY_VALUE_MAX] = {0};
+    //char value[PROPERTY_VALUE_MAX] = {0};
     char buf[32];
     char tsync_mode_str[10];
 
@@ -1095,11 +1098,11 @@ int adec_get_tsync_info(int *tsync_mode)
         return -1;
     }
 
-    if (tsync_mode == TSYNC_MODE_AMASTER && !strcmp(tsync_mode_str, "amaster")) {
+    if (/*tsync_mode == TSYNC_MODE_AMASTER && */!strcmp(tsync_mode_str, "amaster")) {
         *tsync_mode = TSYNC_MODE_AMASTER;
-    } else if (tsync_mode == TSYNC_MODE_VMASTER && !strcmp(tsync_mode_str, "vmaster")) {
+    } else if (/*tsync_mode == TSYNC_MODE_VMASTER && */!strcmp(tsync_mode_str, "vmaster")) {
         *tsync_mode = TSYNC_MODE_VMASTER;
-    } else if (tsync_mode == TSYNC_MODE_PCRMASTER && !strcmp(tsync_mode_str, "pcrmaster")) {
+    } else if (/*tsync_mode == TSYNC_MODE_PCRMASTER &&*/ !strcmp(tsync_mode_str, "pcrmaster")) {
         *tsync_mode = TSYNC_MODE_PCRMASTER;
     }
 

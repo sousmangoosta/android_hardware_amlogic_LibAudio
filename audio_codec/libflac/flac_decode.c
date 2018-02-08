@@ -27,7 +27,7 @@
 
 #include <android/log.h>
 
-#define  LOG_TAG    "FlacDecoder"
+//#define  LOG_TAG    "FlacDecoder"
 #define audio_codec_print(...) __android_log_print(ANDROID_LOG_INFO,LOG_TAG,__VA_ARGS__)
 
 #define DefaultReadSize 1024*10 //read count from kernel audio buf one time
@@ -66,6 +66,23 @@ static AVCodecContext acodec;
 static FLACContext  flactext;
 static OutData outbuffer;
 #define INPUT_BUF_SIZE  32768
+
+static inline av_const int av_log2(unsigned int v)
+{
+    int n = 0;
+    if (v & 0xffff0000) {
+        v >>= 16;
+        n += 16;
+    }
+    if (v & 0xff00) {
+        v >>= 8;
+        n += 8;
+    }
+    n += ff_log2_tab[v];
+
+    return n;
+}
+
 static int64_t get_utf8(GetBitContext *gb)
 {
     int64_t val;
@@ -107,7 +124,7 @@ void *av_mallocz(unsigned int size)
     }
     return ptr;
 }
-
+/*
 static inline uint32_t bytestream_get_be32(const uint8_t** ptr)
 {
     uint32_t tmp;
@@ -115,7 +132,7 @@ static inline uint32_t bytestream_get_be32(const uint8_t** ptr)
     *ptr += 4;
     return tmp;
 }
-
+*/
 static inline uint32_t bytestream_get_be24(const uint8_t** ptr)
 {
     uint32_t tmp;
@@ -278,6 +295,61 @@ int ff_flac_is_extradata_valid(AVCodecContext *avctx,
     }
     return 1;
 }
+
+static inline int get_ur_golomb_jpegls(GetBitContext *gb, int k, int limit, int esc_len)
+{
+    unsigned int buf;
+    int log;
+
+    OPEN_READER(re, gb);
+    UPDATE_CACHE(re, gb);
+    buf = GET_CACHE(re, gb);
+
+    log = av_log2(buf);
+
+    if (log - k >= 32 - MIN_CACHE_BITS + (MIN_CACHE_BITS == 32) && 32 - log < limit) {
+        buf >>= log - k;
+        buf += (30 - log) << k;
+        LAST_SKIP_BITS(re, gb, 32 + k - log);
+        CLOSE_READER(re, gb);
+
+        return buf;
+    } else {
+        int i;
+        for (i = 0; SHOW_UBITS(re, gb, 1) == 0; i++) {
+            LAST_SKIP_BITS(re, gb, 1);
+            UPDATE_CACHE(re, gb);
+        }
+        SKIP_BITS(re, gb, 1);
+
+        if (i < limit - 1) {
+            if (k) {
+                buf = SHOW_UBITS(re, gb, k);
+                LAST_SKIP_BITS(re, gb, k);
+            } else {
+                buf = 0;
+            }
+
+            CLOSE_READER(re, gb);
+            return buf + (i << k);
+        } else if (i == limit - 1) {
+            buf = SHOW_UBITS(re, gb, esc_len);
+            LAST_SKIP_BITS(re, gb, esc_len);
+            CLOSE_READER(re, gb);
+
+            return buf + 1;
+        } else {
+            return -1;
+        }
+    }
+}
+
+static inline int get_sr_golomb_flac(GetBitContext *gb, int k, int limit, int esc_len)
+{
+    int v = get_ur_golomb_jpegls(gb, k, limit, esc_len);
+    return (v >> 1) ^ -(v & 1);
+}
+
 static int decode_residuals(FLACContext *s, int channel, int pred_order)
 {
     int i, tmp, partition, method_type, rice_order;
@@ -684,11 +756,11 @@ static inline int av_clipf1(float a, int amin, int amax)
         return (int)a;
     }
 }
-int audio_dec_decode(audio_decoder_operations_t *adec_ops, char *outbuf, int *outlen, char *inbuf, int inlen)
+int audio_dec_decode(audio_decoder_operations_t *adec_ops __unused, char *outbuf, int *outlen, char *inbuf, int inlen)
 {
-    AVCodecContext *avctx    = &acodec;
+    //AVCodecContext *avctx    = &acodec;
     FLACContext *s = &flactext;
-    int i, j = 0, input_buf_size = 0, bytes_read = 0;
+    int i, j = 0, bytes_read = 0;
     int16_t *samples_16 = (int16_t*)outbuf;
     int32_t *samples_32 = (int32_t*)outbuf;
     int output_size = 0;
@@ -697,7 +769,7 @@ int audio_dec_decode(audio_decoder_operations_t *adec_ops, char *outbuf, int *ou
     int last_sync_pos = 0;
 
     unsigned int max_framesize = FFMAX(17 * s->max_framesize / 16 + 32, s->max_framesize);
-    if (inlen < max_framesize) {
+    if (inlen < (int)max_framesize) {
         int  inbufindex = 0;
         char *pinbufptr = inbuf;
         char para = *(pinbufptr + 2);
@@ -723,7 +795,7 @@ int audio_dec_decode(audio_decoder_operations_t *adec_ops, char *outbuf, int *ou
     }
 
 decodecontinue:
-    s->bitstream = inbuf;
+    s->bitstream = (uint8_t *)inbuf;
     s->bitstream_size = inlen;
     s->bitstream_index = 0;
 
@@ -890,7 +962,7 @@ int audio_dec_init(audio_decoder_operations_t *adec_ops)
     s->avctx = &acodec;
     //audio_codec_print("\n\n[%s]BuildDate--%s  BuildTime--%s", __FUNCTION__, __DATE__, __TIME__);
     avctx->sample_fmt = SAMPLE_FMT_S16;
-    avctx->extradata = adec_ops->extradata;
+    avctx->extradata = (uint8_t *)adec_ops->extradata;
     avctx->extradata_size = adec_ops->extradata_size;
 
     if (!avctx->extradata_size) {
@@ -919,24 +991,24 @@ int audio_dec_init(audio_decoder_operations_t *adec_ops)
     return 0;
 }
 
-int audio_dec_release(audio_decoder_operations_t *adec_ops)
+int audio_dec_release(audio_decoder_operations_t *adec_ops __unused)
 {
     int i;
     audio_codec_print("audio_dec_release.--------------------------------\n");
 
     if (outbuffer.outb == NULL) {
-        av_freep(&outbuffer.outb);
+        av_freep((void **)&outbuffer.outb);
     }
 
     for (i = 0; i < flactext.channels; i++) {
-        av_freep(&flactext.decoded[i]);
+        av_freep((void **)&flactext.decoded[i]);
     }
     //  av_free(flactext.bitstream);
 
     return 0;
 }
 
-int audio_dec_getinfo(audio_decoder_operations_t *adec_ops, void *pAudioInfo)
+int audio_dec_getinfo(audio_decoder_operations_t *adec_ops __unused, void *pAudioInfo __unused)
 {
     return 0;
 }

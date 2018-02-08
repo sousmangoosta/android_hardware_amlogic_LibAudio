@@ -40,7 +40,7 @@
 #include "rm_error.h"
 #include "rm_error_default.h"
 
-void rm_error_default(void* pUserError, HX_RESULT err, const char* msg)
+void rm_error_default(void* pUserError __unused, HX_RESULT err __unused, const char* msg)
 {
     if (msg) {
 #if 0

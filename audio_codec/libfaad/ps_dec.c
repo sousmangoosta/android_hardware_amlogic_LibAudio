@@ -254,7 +254,7 @@ static void hybrid_free(hyb_info *hyb)
 }
 
 /* real filter, size 2 */
-static void channel_filter2(hyb_info *hyb, uint8_t frame_len, const real_t *filter,
+static void channel_filter2(hyb_info *hyb __unused, uint8_t frame_len, const real_t *filter,
                             qmf_t *buffer, qmf_t **X_hybrid)
 {
     uint8_t i;
@@ -286,7 +286,7 @@ static void channel_filter2(hyb_info *hyb, uint8_t frame_len, const real_t *filt
 }
 
 /* complex filter, size 4 */
-static void channel_filter4(hyb_info *hyb, uint8_t frame_len, const real_t *filter,
+static void channel_filter4(hyb_info *hyb __unused, uint8_t frame_len, const real_t *filter,
                             qmf_t *buffer, qmf_t **X_hybrid)
 {
     uint8_t i;
@@ -359,7 +359,7 @@ static void INLINE DCT3_4_unscaled(real_t *y, real_t *x)
 }
 
 /* complex filter, size 8 */
-static void channel_filter8(hyb_info *hyb, uint8_t frame_len, const real_t *filter,
+static void channel_filter8(hyb_info *hyb __unused, uint8_t frame_len, const real_t *filter,
                             qmf_t *buffer, qmf_t **X_hybrid)
 {
     uint8_t i, n;
@@ -446,7 +446,7 @@ static void INLINE DCT3_6_unscaled(real_t *y, real_t *x)
 }
 
 /* complex filter, size 12 */
-static void channel_filter12(hyb_info *hyb, uint8_t frame_len, const real_t *filter,
+static void channel_filter12(hyb_info *hyb __unused, uint8_t frame_len, const real_t *filter,
                              qmf_t *buffer, qmf_t **X_hybrid)
 {
     uint8_t i, n;
@@ -557,7 +557,7 @@ static void hybrid_analysis(hyb_info *hyb, qmf_t X[32][64], qmf_t X_hybrid[32][3
 }
 
 static void hybrid_synthesis(hyb_info *hyb, qmf_t X[32][64], qmf_t X_hybrid[32][32],
-                             uint8_t use34, uint8_t numTimeSlotsRate)
+                             uint8_t use34, uint8_t numTimeSlotsRate __unused)
 {
     uint8_t k, n, band;
     uint8_t offset = 0;
@@ -1767,7 +1767,7 @@ void ps_free(ps_info *ps)
     faad_free(ps);
 }
 
-ps_info *ps_init(uint8_t sr_index, uint8_t numTimeSlotsRate)
+ps_info *ps_init(uint8_t sr_index __unused, uint8_t numTimeSlotsRate)
 {
     uint8_t i;
     uint8_t short_delay_band;
@@ -1856,8 +1856,8 @@ ps_info *ps_init(uint8_t sr_index, uint8_t numTimeSlotsRate)
 /* main Parametric Stereo decoding function */
 uint8_t ps_decode(ps_info *ps, qmf_t X_left[38][64], qmf_t X_right[38][64])
 {
-    qmf_t X_hybrid_left[32][32] = {{0}};
-    qmf_t X_hybrid_right[32][32] = {{0}};
+    qmf_t X_hybrid_left[32][32];// = {{0}};
+    qmf_t X_hybrid_right[32][32];// = {{0}};
 
     /* delta decoding of the bitstream data */
     ps_data_decode(ps);

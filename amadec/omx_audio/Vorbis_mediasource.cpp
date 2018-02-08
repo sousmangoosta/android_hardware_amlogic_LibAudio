@@ -7,9 +7,9 @@
 #include "audio-dec.h"
 
 
-#define LOG_TAG "Vorbis_Medissource"
-#define ALOGI(...) __android_log_print(ANDROID_LOG_INFO,LOG_TAG,__VA_ARGS__)
-#define ALOGE(...) __android_log_print(ANDROID_LOG_ERROR,LOG_TAG,__VA_ARGS__)
+//#define LOG_TAG "Vorbis_Medissource"
+//#define ALOGI(...) __android_log_print(ANDROID_LOG_INFO,LOG_TAG,__VA_ARGS__)
+//#define ALOGE(...) __android_log_print(ANDROID_LOG_ERROR,LOG_TAG,__VA_ARGS__)
 extern "C" int read_buffer(unsigned char *buffer, int size);
 namespace android
 {
@@ -74,7 +74,7 @@ int Vorbis_MediaSource::GetReadedBytes()
         int bytes_used;
         bytes_used = bytes_readed_sum - bytes_readed_sum_pre;
         if (bytes_used < 0) {
-            ALOGI("[%s]bytes_readed_sum(%lld) < bytes_readed_sum_pre(%lld) \n", __FUNCTION__, bytes_readed_sum, bytes_readed_sum_pre);
+            ALOGI("[%s]bytes_readed_sum(%ld) < bytes_readed_sum_pre(%ld) \n", __FUNCTION__, (long)bytes_readed_sum, (long)bytes_readed_sum_pre);
             bytes_used = 0;
         }
         bytes_readed_sum_pre = bytes_readed_sum;
@@ -90,11 +90,11 @@ sp<MetaData> Vorbis_MediaSource::getFormat()
     return mMeta;
 }
 
-status_t  Vorbis_MediaSource::start(MetaData *params)
+status_t  Vorbis_MediaSource::start(MetaData *params __unused)
 {
     ALOGI("%s %d \n", __FUNCTION__, __LINE__);
     mGroup = new MediaBufferGroup;
-    mGroup->add_buffer(new MediaBuffer(8192));
+    mGroup->add_buffer(MediaBufferBase::Create(8192));
     mStarted = true;
     return OK;
 }
@@ -138,6 +138,7 @@ int Vorbis_MediaSource::MediaSourceRead_buffer(unsigned char *buffer, int size)
     }
 }
 
+/*
 static void dump_pcm_bin(char *path, char *buf, int size)
 {
     FILE *fp = fopen(path, "ab+");
@@ -146,17 +147,18 @@ static void dump_pcm_bin(char *path, char *buf, int size)
         fclose(fp);
     }
 }
+*/
 
-status_t Vorbis_MediaSource::read(MediaBuffer **out, const ReadOptions *options)
+status_t Vorbis_MediaSource::read(MediaBufferBase **out, const ReadOptions *options __unused)
 {
 
     *out = NULL;
-    int read_bytes_per_time;
-    MediaBuffer *buffer;
-    int byte_readed = 0;
+    //int read_bytes_per_time;
+    MediaBufferBase *buffer;
+    //int byte_readed = 0;
     status_t err;
 
-    int SyncFlag = 0, readedbytes = 0;
+    int SyncFlag = 0;// readedbytes = 0;
     int pkt_size = 0;
     uint8_t ptr_head[4] = {0};
     int buf_getted = 0;
@@ -223,8 +225,8 @@ re_read:
         buffer->set_range(0, pkt_size + insert_byte);
         memcpy((unsigned char*)(buffer->data()) + pkt_size, &numPageSamples, sizeof(numPageSamples));
     }
-    buffer->meta_data()->setInt64(kKeyTime, mCurrentTimeUs);
-    buffer->meta_data()->setInt32(kKeyIsSyncFrame, 1);
+    buffer->meta_data().setInt64(kKeyTime, mCurrentTimeUs);
+    buffer->meta_data().setInt32(kKeyIsSyncFrame, 1);
     bytes_readed_sum += (pkt_size + 8);
     ALOGV("vorbis package size %d,num %d\n", pkt_size, FrameNumReaded);
     FrameNumReaded++;
@@ -233,7 +235,7 @@ re_read:
     }
     if (FrameNumReaded > 3) {
         packt_size = pkt_size;
-        buffer->meta_data()->setInt32(kKeyValidSamples, -1);
+        buffer->meta_data().setInt32(kKeyValidSamples, -1);
     }
     *out = buffer;
     return OK;

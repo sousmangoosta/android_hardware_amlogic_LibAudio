@@ -21,7 +21,9 @@ interface to call OMX codec
 #include <cutils/properties.h>
 #include <Amsysfsutils.h>
 #include <media/IOMX.h>
-#define LOG_TAG "Adec_OMX"
+#include "AmMetaDataExt.h"
+
+//#define LOG_TAG "Adec_OMX"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO,LOG_TAG,__VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR,LOG_TAG,__VA_ARGS__)
 
@@ -144,7 +146,7 @@ status_t AmlOMXCodec::read(unsigned char *buf,unsigned *size,int *exit)
         return OK;
     }
    
-    status=  m_codec->read(&srcBuffer,NULL);
+    status=  m_codec->read((MediaBufferBase **)&srcBuffer,NULL);
      
     if(srcBuffer==NULL)
     {
@@ -159,7 +161,7 @@ status_t AmlOMXCodec::read(unsigned char *buf,unsigned *size,int *exit)
     if(status == OK && (*size!=0) ){
         memcpy(buf, (void*)((unsigned long)srcBuffer->data() + srcBuffer->range_offset()), *size);
         srcBuffer->set_range(srcBuffer->range_offset() + (*size),srcBuffer->range_length() - (*size));
-        srcBuffer->meta_data()->findInt64(kKeyTime, &buf_decode_offset);
+        srcBuffer->meta_data().findInt64(kKeyTime, &buf_decode_offset);
     }
     
     if (srcBuffer->range_length() == 0) {

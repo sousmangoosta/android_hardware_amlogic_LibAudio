@@ -227,8 +227,8 @@ void faad_free(void *b)
         1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0
     };
 
-    static uint32_t  __r1 = 1;
-    static uint32_t  __r2 = 1;
+    //static uint32_t  __r1 = 1;
+    //static uint32_t  __r2 = 1;
 
 
     /*
@@ -283,7 +283,7 @@ void faad_free(void *b)
 
         return (x & 0x0000003f);
     }
-
+/*
     static uint32_t floor_log2(uint32_t x)
     {
 #if 1
@@ -304,7 +304,7 @@ void faad_free(void *b)
         return count;
 #endif
     }
-
+*/
     /* returns position of first bit that is not 0 from msb,
      * starting count at lsb */
     uint32_t wl_min_lzc(uint32_t x)

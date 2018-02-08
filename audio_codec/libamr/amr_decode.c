@@ -38,7 +38,7 @@ void * Decoder_Init()
         return (void *)D_IF_init();
     }
 }
-void amrnb_decode_frame(void* destate, short* pOutBuffer, short *outlen, char *inbuf, int *consume)
+void amrnb_decode_frame(void* destate, short* pOutBuffer, short *outlen __unused, char *inbuf, int *consume)
 {
     enum Mode dec_mode;
     int read_size;
@@ -92,10 +92,10 @@ void amrwb_decode_frame(void* destate, short* pOutBuffer, short *outlen, char *i
     *consume += tpbuf - inbuf;
 }
 //static int amr_decode_frame(unsigned char *buf, int maxlen, struct frame_fmt *fmt)
-int audio_dec_decode(audio_decoder_operations_t *adec_ops, char *outbuf, int *outlen, char *inbuf, int inlen)
+int audio_dec_decode(audio_decoder_operations_t *adec_ops __unused, char *outbuf, int *outlen, char *inbuf, int inlen __unused)
 {
     //amr_print("[%s:%d]enter into amr_decoder\n", __FUNCTION__,__LINE__);
-    int res = 0;
+    //int res = 0;
     int consume = 0;
     short synth[320];
     int outputSample;
@@ -156,13 +156,13 @@ void Decoder_exit(void *st)
 }
 
 //static int amr_decode_release(void)
-int audio_dec_release(audio_decoder_operations_t *adec_ops)
+int audio_dec_release(audio_decoder_operations_t *adec_ops __unused)
 {
     Decoder_exit(destate);
     return 0;
 }
 
-int audio_dec_getinfo(audio_decoder_operations_t *adec_ops, void *pAudioInfo)
+int audio_dec_getinfo(audio_decoder_operations_t *adec_ops __unused, void *pAudioInfo __unused)
 {
     return 0;
 }

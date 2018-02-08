@@ -208,13 +208,13 @@ RASL_DeInterleave(char *buf, unsigned long ulBufSize, int type, ULONG32 * pFlags
 void ra_bitcopy(unsigned char* toPtr,
                 unsigned long  ulToBufSize,
                 unsigned char* fromPtr,
-                unsigned long  ulFromBufSize,
+                unsigned long  ulFromBufSize __unused,
                 int            bitOffsetTo,
                 int            bitOffsetFrom,
                 int            numBits)
 {
     unsigned char* pToLimit   = toPtr   + ulToBufSize;
-    unsigned char* pFromLimit = fromPtr + ulFromBufSize;
+    //unsigned char* pFromLimit = fromPtr + ulFromBufSize;
     int bofMod8, botMod8, nbMod8, eightMinusBotMod8, eightMinusBofMod8, i, iMax;
     unsigned char rightInword, leftInword, *byteOffsetFrom, *byteOffsetTo,
              alignWord, endWord;
@@ -269,21 +269,22 @@ void ra_bitcopy(unsigned char* toPtr,
         nibbleAlignTo = (bitOffsetTo & 0x04) >> 2;    // 1 implies half-byte alignment
 
 
-        if (nibbleAlignFrom == nibbleAlignTo) // either src and dest both byte-aligned
+        if (nibbleAlignFrom == nibbleAlignTo) {// either src and dest both byte-aligned
             // or both half byte-aligned
             if (nibbleAlignFrom == 0) {
                 alignCase = 0;
             } else {
                 alignCase = 3;
             }
+        }
 
-
-        if (nibbleAlignFrom != nibbleAlignTo)
+        if (nibbleAlignFrom != nibbleAlignTo) {
             if (nibbleAlignFrom == 0) {
                 alignCase = 1;    // src aligned, dest half aligned
             } else {
                 alignCase = 2;    // src half aligned, dest aligned
             }
+        }
 
         switch (alignCase) {
         case 0:

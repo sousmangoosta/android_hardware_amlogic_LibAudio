@@ -834,7 +834,7 @@ static void invf_mode(bitfile *ld, sbr_info *sbr, uint8_t ch)
 }
 
 static uint16_t sbr_extension(bitfile *ld, sbr_info *sbr,
-                              uint8_t bs_extension_id, uint16_t num_bits_left)
+                              uint8_t bs_extension_id, uint16_t num_bits_left __unused)
 {
 #ifdef PS_DEC
     uint8_t header;

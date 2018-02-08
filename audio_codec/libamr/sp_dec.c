@@ -1267,6 +1267,10 @@ static void Build_CN_param(Word16 *seed, enum Mode mode, Word16 parm[])
             parm[i] = (Word16)(*p++ & ~(0xFFFF << bitno_MR475[i]));
         }
         break;
+    case MRDTX:
+    case N_MODES:
+    default:
+        break;
     }
 }
 
@@ -5226,7 +5230,7 @@ static void Residu40(Word32 a[], Word32 x[], Word32 y[])
              ;
         s += a[8] * x[i - 8] + a[9] * x[i - 9] + a[10] * x[i - 10];
         y[i] = (s + 0x800) >> 12;
-        if (abs(y[i]) > 32767) {
+        if (abs((int)y[i]) > 32767) {
             /* go to safe mode */
             for (i = 0; i < 40; i++) {
                 s = a[0] * x[i];
@@ -5239,7 +5243,7 @@ static void Residu40(Word32 a[], Word32 x[], Word32 y[])
                     }
                 }
                 y[i] = (s + 0x800) >> 12;
-                if (abs(y[i]) > 32767) {
+                if (abs((int)y[i]) > 32767) {
                     y[i] = (y[i] & 0x80000000) ? -32768 : 32767;
                 }
             }
@@ -5443,7 +5447,7 @@ static void Post_Filter(Post_FilterState *st, enum Mode mode, Word32 *syn,
 
         for (i = 1; i < 21; i++) {
             tmp += h[i] * h[i + 1];
-            if (abs(tmp) > 1073741823) {
+            if (abs((int)*p1) > 1073741823) {
                 tmp = 1073741823;
             }
         }
@@ -5463,23 +5467,23 @@ static void Post_Filter(Post_FilterState *st, enum Mode mode, Word32 *syn,
 
         do {
             *p1 = *p1 - ((temp2 * *p2--) >> 15);
-            if (abs(*p1) > 32767) {
+            if (abs((int)*p1) > 32767) {
                 *p1 = (*p1 & 0x80000000) ? -32768 : 32767;
             }
             p1--;
             *p1 = *p1 - ((temp2 * *p2--) >> 15);
-            if (abs(*p1) > 32767) {
+            if (abs((int)*p1) > 32767) {
                 *p1 = (*p1 & 0x80000000) ? -32768 : 32767;
             }
             p1--;
             *p1 = *p1 - ((temp2 * *p2--) >> 15);
-            if (abs(*p1) > 32767) {
+            if (abs((int)*p1) > 32767) {
                 *p1 = (*p1 & 0x80000000) ? -32768 : 32767;
             }
             p1--;
         } while (p1 > st->res2);
         *p1 = *p1 - ((temp2 * st->preemph_state_mem_pre) >> 15);
-        if (abs(*p1) > 32767) {
+        if (abs((int)*p1) > 32767) {
             *p1 = (*p1 & 0x80000000) ? -32768 : 32767;
         }
         st->preemph_state_mem_pre = tmp;

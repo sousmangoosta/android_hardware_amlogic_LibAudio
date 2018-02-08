@@ -165,62 +165,6 @@ static __inline Word64 MADD64(Word64 sum64, int x, int y)
  */
 #elif 1//defined (_WIN32) && defined (_WIN32_WCE) && defined (ARM)
 
-static  short CLIPTOSHORT(int x)
-{
-    int sign;
-
-    /* clip to [-32768, 32767] */
-    sign = x >> 31;
-    if (sign != (x >> 15)) {
-        x = sign ^((1 << 15) - 1);
-    }
-
-    return (short)x;
-}
-
-static  int FASTABS(int x)
-{
-    int sign;
-
-    sign = x >> (sizeof(int) * 8 - 1);
-    x ^= sign;
-    x -= sign;
-
-    return x;
-}
-
-static  int CLZ(int x)
-{
-    int numZeros;
-
-    if (!x) {
-        return 32;
-    }
-
-    /* count leading zeros with binary search (function should be 17 ARM instructions total) */
-    numZeros = 1;
-    if (!((unsigned int)x >> 16))   {
-        numZeros += 16;
-        x <<= 16;
-    }
-    if (!((unsigned int)x >> 24))   {
-        numZeros +=  8;
-        x <<=  8;
-    }
-    if (!((unsigned int)x >> 28))   {
-        numZeros +=  4;
-        x <<=  4;
-    }
-    if (!((unsigned int)x >> 30))   {
-        numZeros +=  2;
-        x <<=  2;
-    }
-
-    numZeros -= ((unsigned int)x >> 31);
-
-    return numZeros;
-}
-
 /* implemented in asmfunc.s */
 #ifdef __cplusplus
 extern "C" {
@@ -245,12 +189,6 @@ static  int MULSHIFT32(int x, int y)
 	long c;
 	c = (long long)x * y;
 	return (int)c;
-}
-
-static  Word64 MADD64(Word64 sum64, int x, int y)
-{
-	sum64 += (long long)x * y;
-	return sum64;
 }
 
 #ifdef __cplusplus

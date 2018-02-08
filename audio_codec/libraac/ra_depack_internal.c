@@ -43,7 +43,7 @@ HX_RESULT ra_depacki_init(ra_depack_internal* pInt, rm_stream_header* hdr)
         /* Initialize local variables */
         UINT32 ulTmp = 0;
         BYTE*  pTmp  = HXNULL;
-        UINT32 i     = 0;
+        //UINT32 i     = 0;
         /* Check if we have a "HasRelativeTS" property - OK if we don't */
         if (HX_SUCCEEDED(rm_stream_get_property_int(hdr, "TrackStartTime", &ulTmp))) {
             pInt->bForceTrackStartTime = TRUE;
@@ -387,10 +387,10 @@ HX_RESULT ra_depacki_unpack_substream_hdr(ra_depack_internal* pInt,
     return retVal;
 }
 
-HX_RESULT ra_depacki_unpack_raformat3(ra_depack_internal* pInt,
-                                      BYTE*               pBuf,
-                                      UINT32              ulLen,
-                                      ra_substream_hdr*   pHdr)
+HX_RESULT ra_depacki_unpack_raformat3(ra_depack_internal* pInt __unused,
+                                      BYTE*               pBuf __unused,
+                                      UINT32              ulLen __unused,
+                                      ra_substream_hdr*   pHdr __unused)
 {
     return HXR_NOTIMPL;
 }
@@ -404,8 +404,8 @@ HX_RESULT ra_depacki_unpack_raformat4(ra_depack_internal* pInt,
 
     if (pInt && pBuf && ulLen >= 63 && pHdr) {
         /* Init local variables */
-        UINT32 ulSize = 0;
-        UINT32 i      = 0;
+        //UINT32 ulSize = 0;
+        //UINT32 i      = 0;
         /* Skip first 10 bytes */
         pBuf  += 10;
         ulLen -= 10;
@@ -718,7 +718,7 @@ HX_RESULT ra_depacki_add_vbr_packet(ra_depack_internal* pInt,
                 HXBOOL bFrag        = FALSE;
                 UINT32 ulAUSize     = 0;
                 UINT32 ulAUFragSize = 0;
-                UINT32 i            = 0;
+                //UINT32 i            = 0;
                 /* Parse this VBR packet */
                 retVal = ra_depacki_parse_vbr_packet(pInt, pPacket, &ulNumAU, &bFrag,
                                                      &ulAUSize, &ulAUFragSize);
@@ -1358,7 +1358,7 @@ void ra_depacki_clear_frag_buffer(ra_depack_internal* pInt,
     }
 }
 
-HX_RESULT ra_depacki_seek(ra_depack_internal* pInt, UINT32 ulTime)
+HX_RESULT ra_depacki_seek(ra_depack_internal* pInt, UINT32 ulTime __unused)
 {
     HX_RESULT retVal = HXR_FAIL;
 

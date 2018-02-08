@@ -21,7 +21,7 @@
 #include <amthreadpool.h>
 
 
-
+#define LOG_TAG "adec-external-ctrl"
 int audio_decode_basic_init(void)
 {
 #ifndef ALSA_OUT
@@ -72,7 +72,7 @@ int audio_decode_init(void **handle, arm_audio_info *a_ainfo)
         audec->droppcm_flag = a_ainfo->droppcm_flag;
         a_ainfo->droppcm_flag = 0;
     }
-    if (a_ainfo->extradata_size > 0 && a_ainfo->extradata_size <= AUDIO_EXTRA_DATA_SIZE) {
+    if (a_ainfo->extradata_size > 0 && a_ainfo->extradata_size <= 4096) {
         memcpy((char*)audec->extradata, (char*)a_ainfo->extradata, a_ainfo->extradata_size);
     }
     audec->adsp_ops.audec = audec;
@@ -326,7 +326,7 @@ int audio_decode_set_volume(void *handle, float vol)
  * \param gain pre-gain value
  * \return 0 on success otherwise -1 if an error occurred
  */
-int audio_decode_set_pre_gain(void *handle, float gain)
+int audio_decode_set_pre_gain(void *handle, float gain __unused)
 {
     int ret = 0;
     aml_audio_dec_t *audec = (aml_audio_dec_t *)handle;
@@ -404,7 +404,7 @@ int audio_decode_set_lrvolume(void *handle, float lvol, float rvol)
 int audio_decode_get_volume(void *handle, float *vol)
 {
     int ret = 0;
-    adec_cmd_t *cmd;
+    //adec_cmd_t *cmd;
     aml_audio_dec_t *audec = (aml_audio_dec_t *)handle;
 
     if (!handle) {
@@ -423,11 +423,11 @@ int audio_decode_get_volume(void *handle, float *vol)
  * \param gain pre-gain value
  * \return 0 on success otherwise -1 if an error occurred
  */
-int audio_decode_get_pre_gain(void *handle, float *gain)
+int audio_decode_get_pre_gain(void *handle, float *gain __unused)
 {
     int ret = 0;
-    adec_cmd_t *cmd;
-    aml_audio_dec_t *audec = (aml_audio_dec_t *)handle;
+    //adec_cmd_t *cmd;
+    //aml_audio_dec_t *audec = (aml_audio_dec_t *)handle;
 
     if (!handle) {
         adec_print("audio handle is NULL !\n");
@@ -448,7 +448,7 @@ int audio_decode_get_pre_gain(void *handle, float *gain)
 int audio_decode_get_pre_mute(void *handle, uint *mute)
 {
     int ret = 0;
-    adec_cmd_t *cmd;
+    //adec_cmd_t *cmd;
     aml_audio_dec_t *audec = (aml_audio_dec_t *)handle;
 
     if (!handle) {
@@ -470,7 +470,7 @@ int audio_decode_get_pre_mute(void *handle, uint *mute)
 int audio_decode_get_lrvolume(void *handle, float *lvol, float* rvol)
 {
     int ret = 0;
-    adec_cmd_t *cmd;
+    //adec_cmd_t *cmd;
     aml_audio_dec_t *audec = (aml_audio_dec_t *)handle;
 
     if (!handle) {
@@ -842,7 +842,7 @@ int audio_decoder_set_trackrate(void* handle, void *rate)
  * \param handle pointer to player private data
  * \return 0 =success, -1 = error
  */
-int audio_set_associate_enable(void* handle, unsigned int enable)
+int audio_set_associate_enable(void* handle __unused, unsigned int enable __unused)
 {
     int ret = 0;
     //enable it after dual-decoder code merged to android N
@@ -867,7 +867,7 @@ int audio_set_associate_enable(void* handle, unsigned int enable)
  * \return [0, size], the length that have writen to destination buffer.
  * \return -1, handle or other error
  */
-int audio_send_associate_data(void* handle, uint8_t *buf, size_t size)
+int audio_send_associate_data(void* handle __unused, uint8_t *buf __unused, size_t size)
 {
 #if 0
     int ret = 0;

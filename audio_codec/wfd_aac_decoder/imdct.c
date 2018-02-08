@@ -44,10 +44,24 @@
  **************************************************************************************/
 
 #include "coder.h"
-#include "assembly.h"
+//#include "assembly.h"
 #include "aacdec.h"
 
 #define RND_VAL     (1 << (FBITS_OUT_IMDCT-1))
+
+static  short CLIPTOSHORT(int x)
+{
+    int sign;
+
+    /* clip to [-32768, 32767] */
+    sign = x >> 31;
+    if (sign != (x >> 15)) {
+        x = sign ^((1 << 15) - 1);
+    }
+
+    return (short)x;
+}
+
 
 #ifndef AAC_ENABLE_SBR
 

@@ -43,12 +43,12 @@
 #include "rm_memory.h"
 #include "rm_memory_default.h"
 
-void* rm_memory_default_malloc(void* pUserMem, UINT32 ulSize)
+void* rm_memory_default_malloc(void* pUserMem __unused, UINT32 ulSize)
 {
     return (void *)malloc(ulSize);
 }
 
-void rm_memory_default_free(void* pUserMem, void* ptr)
+void rm_memory_default_free(void* pUserMem __unused, void* ptr)
 {
     free(ptr);
 }
