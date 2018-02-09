@@ -60,6 +60,18 @@ static int get_digitalraw_mode(void)
 #define DTSHD_IEC958_PKTTYPE_SINGLEI2S 1
 #define DTSHD_IEC958_PKTTYPE_FOURI2S   2
 
+bool is_gxm_platform()
+{
+    char value[128];
+    int ret = property_get("ro.board.platform", value, "gxl");
+    if (ret > 0 && !strcmp(value, "gxm")) {
+        adec_print("this is gxm platform");
+        return true;
+    }
+    adec_print("this is gxl platform");
+    return false;
+}
+
 void restore_system_samplerate(struct aml_audio_dec* audec)
 {
 #if defined(ANDROID_VERSION_JBMR2_UP)
@@ -523,22 +535,34 @@ void audioCallback(int event, void* user, void *info)
                         apts64 - pcrscr64, RESAMPLE_THRESHOLD, ((pcrscr64 - apts64) > (int64_t)(100 * TIME_UNIT90K / 1000)));
                         af_set_resample_type(RESAMPLE_TYPE_NONE);
                     } else if ((pcrscr64 - apts64) > (int64_t)RESAMPLE_THRESHOLD) {
-						resample_down_count ++;
-						resample_up_count = 0;
-						if(resample_down_count > 5)
-							af_set_resample_type(RESAMPLE_TYPE_DOWN);
+
+                        if (is_gxm_platform()) {
+                            resample_down_count ++;
+                            resample_up_count = 0;
+                            if(resample_down_count > 5)
+                               af_set_resample_type(RESAMPLE_TYPE_DOWN);
+                        } else {
+                            af_set_resample_type(RESAMPLE_TYPE_DOWN);
+                        }
                         adec_print("down: #pcrmaster enable:%d, %lld, %lld, %lld,  --------\n", af_get_resample_enable_flag(),apts64,pcrscr64,pcrscr64-apts64);
                     } else if ((apts64 - pcrscr64) > (int64_t)RESAMPLE_THRESHOLD) {
-						resample_up_count ++;
-						resample_down_count = 0;
-						if(resample_up_count > 5)
-							af_set_resample_type(RESAMPLE_TYPE_UP);
+
+                        if (is_gxm_platform()) {
+                            resample_up_count ++;
+                            resample_down_count = 0;
+                            if(resample_up_count > 5)
+                               af_set_resample_type(RESAMPLE_TYPE_UP);
+                        } else {
+                            af_set_resample_type(RESAMPLE_TYPE_UP);
+                        }
                         adec_print("up: #pcrmaster enable:%d, %lld, %lld, %lld, --------\n", af_get_resample_enable_flag(), apts64,pcrscr64,apts64-pcrscr64);
                     } else {
                         adec_print("none: #pcrmaster: %lld, %lld, %lld, %d,%d,--------\n",
                         apts64,pcrscr64,apts64-pcrscr64,RESAMPLE_THRESHOLD,((pcrscr64 - apts64) > (int64_t)(100*TIME_UNIT90K/1000)));
-						resample_up_count = 0;
-						resample_down_count = 0;
+                        if (is_gxm_platform()) {
+                            resample_up_count = 0;
+                            resample_down_count = 0;
+                        }
                         af_set_resample_type(RESAMPLE_TYPE_NONE);
                     }
                     audec->last_apts64 = apts64;
@@ -1417,38 +1441,38 @@ extern "C" unsigned long android_latency(struct aml_audio_dec* audec)
 #endif
     if (audec->use_get_out_posion && audec->aout_ops.get_out_position)
         return 0;
-#if 0
-    if (track) {
-        status_t s;
-        int ret = -1;
-        int64_t write_samples;
-        int cache_samples;
-        int delay_us, t_us;
-        AudioTimestamp timestamp;
-        s  = track->getTimestamp(timestamp);
-        if (s != NO_ERROR || timestamp.mPosition < 1) {
+    if (!is_gxm_platform()) {
+        if (track) {
+           status_t s;
+           int ret = -1;
+           int64_t write_samples;
+           int cache_samples;
+           int delay_us, t_us;
+           AudioTimestamp timestamp;
+           s  = track->getTimestamp(timestamp);
+           if (s != NO_ERROR || timestamp.mPosition < 1) {
            /*
            timestamp.mPosition <= 0 we think audio not have start.
            the latency is not accurate
            */
-            return 0;
-        } else {
-            struct timespec timenow;
-            write_samples = audec->pcm_bytes_readed/(audec->channels * 2);
-            cache_samples = write_samples -  timestamp.mPosition;
-            if (cache_samples < 0)
-                cache_samples = 0;
-            delay_us = 1000 * (cache_samples * 1000 / audec->samplerate);
-            clock_gettime(CLOCK_MONOTONIC, &timenow);
-            t_us = (timenow.tv_sec - timestamp.mTime.tv_sec) * 1000000LL +
-            (timenow.tv_nsec- timestamp.mTime.tv_nsec)/1000;
-            delay_us -=t_us;
-            if (delay_us < 0)
-                delay_us =0;
-            return delay_us/1000;
-        }
+              return 0;
+           } else {
+              struct timespec timenow;
+              write_samples = audec->pcm_bytes_readed/(audec->channels * 2);
+              cache_samples = write_samples -  timestamp.mPosition;
+              if (cache_samples < 0)
+                  cache_samples = 0;
+              delay_us = 1000 * (cache_samples * 1000 / audec->samplerate);
+              clock_gettime(CLOCK_MONOTONIC, &timenow);
+              t_us = (timenow.tv_sec - timestamp.mTime.tv_sec) * 1000000LL +
+                (timenow.tv_nsec- timestamp.mTime.tv_nsec)/1000;
+              delay_us -=t_us;
+              if (delay_us < 0)
+                  delay_us =0;
+              return delay_us/1000;
+          }
+       }
     }
-#endif
 
     if (track) {
         latency = track->latency();
