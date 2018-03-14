@@ -60,15 +60,15 @@ static int get_digitalraw_mode(void)
 #define DTSHD_IEC958_PKTTYPE_SINGLEI2S 1
 #define DTSHD_IEC958_PKTTYPE_FOURI2S   2
 
-bool is_gxm_platform()
+bool is_support_dvb()
 {
     char value[128];
-    int ret = property_get("ro.board.platform", value, "gxl");
-    if (ret > 0 && !strcmp(value, "gxm")) {
-        adec_print("this is gxm platform");
+    int ret = property_get("ro.product.board", value, "kvim");
+    if (ret > 0 && (!strcmp(value, "kvim2") || !strcmp(value, "kvim2l"))) {
+        adec_print("the dvb is supported");
         return true;
     }
-    adec_print("this is gxl platform");
+    adec_print("the dvb isn't supported");
     return false;
 }
 
@@ -536,7 +536,7 @@ void audioCallback(int event, void* user, void *info)
                         af_set_resample_type(RESAMPLE_TYPE_NONE);
                     } else if ((pcrscr64 - apts64) > (int64_t)RESAMPLE_THRESHOLD) {
 
-                        if (is_gxm_platform()) {
+                        if (is_support_dvb()) {
                             resample_down_count ++;
                             resample_up_count = 0;
                             if(resample_down_count > 5)
@@ -547,7 +547,7 @@ void audioCallback(int event, void* user, void *info)
                         adec_print("down: #pcrmaster enable:%d, %lld, %lld, %lld,  --------\n", af_get_resample_enable_flag(),apts64,pcrscr64,pcrscr64-apts64);
                     } else if ((apts64 - pcrscr64) > (int64_t)RESAMPLE_THRESHOLD) {
 
-                        if (is_gxm_platform()) {
+                        if (is_support_dvb()) {
                             resample_up_count ++;
                             resample_down_count = 0;
                             if(resample_up_count > 5)
@@ -559,7 +559,7 @@ void audioCallback(int event, void* user, void *info)
                     } else {
                         adec_print("none: #pcrmaster: %lld, %lld, %lld, %d,%d,--------\n",
                         apts64,pcrscr64,apts64-pcrscr64,RESAMPLE_THRESHOLD,((pcrscr64 - apts64) > (int64_t)(100*TIME_UNIT90K/1000)));
-                        if (is_gxm_platform()) {
+                        if (is_support_dvb()) {
                             resample_up_count = 0;
                             resample_down_count = 0;
                         }
@@ -1441,7 +1441,7 @@ extern "C" unsigned long android_latency(struct aml_audio_dec* audec)
 #endif
     if (audec->use_get_out_posion && audec->aout_ops.get_out_position)
         return 0;
-    if (!is_gxm_platform()) {
+    if (!is_support_dvb()) {
         if (track) {
            status_t s;
            int ret = -1;
