@@ -9,6 +9,7 @@ LOCAL_C_INCLUDES:= \
     $(LOCAL_PATH)/include \
     $(LOCAL_PATH)/../     \
     $(LOCAL_PATH)/../include \
+    frameworks/av/include \
     frameworks/native/include/media/openmax \
     frameworks/native/libs/nativewindow/include/system \
     frameworks/av/include/media/stagefright \

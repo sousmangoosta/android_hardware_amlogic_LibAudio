@@ -8,6 +8,7 @@
  * All right reserved
  *
  */
+#define LOG_TAG "amadec"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,7 +26,7 @@
 #include <unistd.h>
 #include "audiodsp_update_format.h"
 
-#define LOG_TAG "adec-mgt"
+
 
 #define MULTICH_SUPPORT_PROPERTY "media.multich.support.info"
 #define PCM_88_96_SUPPORT        "media.libplayer.88_96K"
@@ -360,9 +361,9 @@ static void *adec_message_loop(void *args)
             audec->state = INITTED;
             adec_print("Audio out device init ok!");
             start_adec(audec);
-            if (dtsenc_init() != -1) {
-                dtsenc_start();
-            }
+            //if (dtsenc_init() != -1) {
+             //   dtsenc_start();
+           // }
 
             break;
         }
@@ -393,21 +394,21 @@ static void *adec_message_loop(void *args)
 
             adec_print("Receive START Command!\n");
             start_adec(audec);
-            dtsenc_start();
+            //dtsenc_start();
             break;
 
         case CMD_PAUSE:
 
             adec_print("Receive PAUSE Command!");
             pause_adec(audec);
-            dtsenc_pause();
+            //dtsenc_pause();
             break;
 
         case CMD_RESUME:
 
             adec_print("Receive RESUME Command!");
             resume_adec(audec);
-            dtsenc_resume();
+            //dtsenc_resume();
             break;
 
         case CMD_STOP:
@@ -415,7 +416,7 @@ static void *adec_message_loop(void *args)
             adec_print("Receive STOP Command!");
             adec_print("audec->state=%d (INITING/3) when Rec_STOP_CMD\n", audec->state);
             stop_adec(audec);
-            dtsenc_stop();
+            //dtsenc_stop();
             break;
 
         case CMD_MUTE:
@@ -469,7 +470,7 @@ static void *adec_message_loop(void *args)
 
             adec_print("Receive RELEASE Command!");
             release_adec(audec);
-            dtsenc_release();
+            //dtsenc_release();
             break;
 
         default:
@@ -732,7 +733,7 @@ int audiodec_init(aml_audio_dec_t *audec)
     unsigned wfd = 0;
     adec_print("audiodec_init!");
     adec_message_pool_init(audec);
-    get_output_func(audec);
+    //get_output_func(audec);
     int nCodecType = audec->format;
     set_audio_decoder(audec);
     audec->format_changed_flag = 0;

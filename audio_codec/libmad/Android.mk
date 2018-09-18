@@ -2,7 +2,7 @@ LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
 
-LOCAL_SHARED_LIBRARIES += libutils libmedia libz libbinder libdl libcutils libc liblog
+LOCAL_SHARED_LIBRARIES += libutils libz libbinder libdl libcutils libc liblog
 
 LOCAL_MODULE    := libmad
 LOCAL_SRC_FILES := $(notdir $(wildcard $(LOCAL_PATH)/*.c))

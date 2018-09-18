@@ -12,7 +12,7 @@
 #include "Amsysfsutils.h"
 #include "amconfigutils.h"
 
-#define LOG_TAG "adec_read"
+#define LOG_TAG "amadec"
 #define ASTREAM_DEV "/dev/uio0"
 #define ASTREAM_ADDR "/sys/class/astream/astream-dev/uio0/maps/map0/addr"
 #define ASTREAM_SIZE "/sys/class/astream/astream-dev/uio0/maps/map0/size"
@@ -45,6 +45,8 @@ volatile unsigned* reg_base = 0;
 
 static volatile void *memmap = MAP_FAILED;
 static int phys_size = 0;
+pthread_mutex_t uio_mutex = PTHREAD_MUTEX_INITIALIZER;
+//static int fd_dump = -1;
 
 static unsigned long  get_num_infile(char *file)
 {
@@ -54,6 +56,8 @@ static unsigned long  get_num_infile(char *file)
 int uio_init(aml_audio_dec_t *audec)
 {
     //  int fd = -1;
+    memmap = MAP_FAILED;
+    phys_size = 0;
     int pagesize = getpagesize();
     int phys_start;
     //  int phys_size;
@@ -61,10 +65,13 @@ int uio_init(aml_audio_dec_t *audec)
     //  volatile unsigned memmap;
     int addr_offset;
 
+    pthread_mutex_lock(&uio_mutex);
 
     audec->fd_uio = open(ASTREAM_DEV, O_RDWR);
-    if (audec->fd_uio < 0) {
+    if (audec->fd_uio < 0)
+    {
         adec_print("error open UIO 0\n");
+        pthread_mutex_unlock(&uio_mutex);
         return -1;
     }
     phys_start = get_num_infile(ASTREAM_ADDR);
@@ -78,28 +85,40 @@ int uio_init(aml_audio_dec_t *audec)
     phys_size = (phys_size + pagesize - 1) & (~(pagesize - 1));
     memmap = mmap(NULL, phys_size, PROT_READ | PROT_WRITE, MAP_SHARED, audec->fd_uio, 0 * pagesize);
 
-    adec_print("memmap = %p , pagesize = %x\n", memmap, pagesize);
-    if (memmap == MAP_FAILED) {
+ // adec_print("memmap = %x , pagesize = %x\n", memmap, pagesize);
+    if (memmap == MAP_FAILED)
+    {
         adec_print("map /dev/uio0 failed\n");
+        pthread_mutex_unlock(&uio_mutex);
         return -1;
     }
     if (phys_offset == 0)
         phys_offset = ((AIU_AIFIFO_CTRL + addr_offset) << 2) & (pagesize - 1);
-    reg_base = (unsigned*)memmap + phys_offset;
+    reg_base = (volatile unsigned*)((unsigned)memmap + phys_offset);
+    pthread_mutex_unlock(&uio_mutex);
+
     return 0;
 }
 
 int uio_deinit(aml_audio_dec_t *audec)
 {
-    if (audec->fd_uio >= 0) {
+    pthread_mutex_lock(&uio_mutex);
+    if (audec->fd_uio >= 0)
+    {
         close(audec->fd_uio);
     }
+
     audec->fd_uio = -1;
 
-    if (memmap != NULL && memmap != MAP_FAILED) {
+    if (memmap != NULL && memmap != MAP_FAILED)
+    {
         munmap((void *)memmap, phys_size);
     }
+
+    memmap = MAP_FAILED;
+    phys_size = 0;
     adec_print("audio_dec_release done \n");
+    pthread_mutex_unlock(&uio_mutex);
     return 0;
 }
 
@@ -108,15 +127,16 @@ static inline void waiting_bits(int bits)
 {
     int bytes;
     bytes = READ_MPEG_REG(AIU_MEM_AIFIFO_BYTES_AVAIL);
-    while (bytes * 8 < bits) {
-        if (amthreadpool_on_requare_exit(0)) {
+    while (bytes * 8 < bits)
+    {
+        if (amthreadpool_on_requare_exit(0))
+        {
             break;
         }
         amthreadpool_thread_usleep(1000);
         bytes = READ_MPEG_REG(AIU_MEM_AIFIFO_BYTES_AVAIL);
     }
 }
-
 
 #define EXTRA_DATA_SIZE 128
 int read_buffer(unsigned char *buffer, int size)
@@ -130,11 +150,17 @@ int read_buffer(unsigned char *buffer, int size)
     int wait_times = 0, fifo_ready_wait = 0;
 
     int iii;
-
+    pthread_mutex_lock(&uio_mutex);
+    if (memmap == MAP_FAILED)
+    {
+        pthread_mutex_unlock(&uio_mutex);
+        return 0;
+    }
+    //adec_print("xujian print2 reg_base = %p ,\n", reg_base);
     iii = READ_MPEG_REG(AIU_MEM_AIFIFO_LEVEL) - EXTRA_DATA_SIZE;
-    //  adec_print("read_buffer start iii = %d!!\n", iii);
+    //adec_print("read_buffer start iii = %d!!\n", iii);
 
-    //static int cc = 0;
+   // static int cc = 0;
     len = 0;
 #if 0
     while (size >=  iii) {
@@ -150,6 +176,7 @@ int read_buffer(unsigned char *buffer, int size)
     }
 #endif
     if ((size >=  iii)) {
+        pthread_mutex_unlock(&uio_mutex);
         return 0;
     }
 
@@ -179,6 +206,7 @@ int read_buffer(unsigned char *buffer, int size)
                 amthreadpool_thread_usleep(1000);
                 if (fifo_ready_wait > 100 || amthreadpool_on_requare_exit(0)) {
                     adec_print("FATAL err,AIFIFO is not ready,check!!\n");
+                    pthread_mutex_unlock(&uio_mutex);
                     return 0;
                 }
             }
@@ -191,9 +219,10 @@ int read_buffer(unsigned char *buffer, int size)
 
         }
         len += bytes;
+        //adec_print("read_buffer bytes len = %d size %d !!\n", len,size);
     }
 out:
-    //stream_in_offset+=len;
+    pthread_mutex_unlock(&uio_mutex);
     return len;
 }
 

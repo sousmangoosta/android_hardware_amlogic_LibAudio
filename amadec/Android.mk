@@ -8,7 +8,7 @@ LOCAL_CFLAGS := \
         -fPIC -D_POSIX_SOURCE
 
 
-
+ifneq (0, $(shell expr $(PLATFORM_VERSION) \< 5.0))
 ifneq (0, $(shell expr $(PLATFORM_VERSION) \>= 5.0))
 ALSA_LIB_DIR=$(BOARD_AML_VENDOR_PATH)/external/alsa-lib/
 else
@@ -32,12 +32,12 @@ LOCAL_CFLAGS += -DALSA_OUT
 #ifdef DOLBY_UDC
 LOCAL_CFLAGS+=-DDOLBY_USE_ARMDEC
 #endif
-LOCAL_SHARED_LIBRARIES += libasound
+LOCAL_SHARED_LIBRARIES += libasound audio.primary.amlogic
 
 LOCAL_SRC_FILES := \
            adec-external-ctrl.c adec-internal-mgt.c adec-ffmpeg-mgt.c adec-message.c adec-pts-mgt.c feeder.c adec_write.c adec_read.c\
            dsp/audiodsp-ctl.c audio_out/alsa-out.c audio_out/aml_resample.c audiodsp_update_format.c spdif_api.c pcmenc_api.c \
-           dts_transenc_api.c dts_enc.c adec_omx_brige.c  adec-wfd.c
+           dts_transenc_api.c dts_enc.c adec_omx_brige.c
 
 LOCAL_MODULE := libamadec_alsa
 
@@ -45,6 +45,7 @@ LOCAL_ARM_MODE := arm
 
 include $(BUILD_STATIC_LIBRARY)
 
+endif
 endif
 
 include $(CLEAR_VARS)
@@ -62,7 +63,9 @@ endif
 LOCAL_C_INCLUDES:= \
     $(LOCAL_PATH)/include \
 	$(AMAVUTILS_INCLUDE) \
-    system/core/base/include
+    system/core/base/include \
+    frameworks/av/include \
+    system/media/audio/include
 
 # PLATFORM_SDK_VERSION:
 # 4.4 = 19
@@ -87,9 +90,7 @@ endif
 
 LOCAL_SRC_FILES := \
            adec-external-ctrl.c adec-internal-mgt.c adec-ffmpeg-mgt.c adec-message.c adec-pts-mgt.c feeder.c adec_write.c adec_read.c\
-           dsp/audiodsp-ctl.c audio_out/android-out.cpp audio_out/aml_resample.c audiodsp_update_format.c spdif_api.c pcmenc_api.c \
-           dts_transenc_api.c dts_enc.c adec_omx_brige.c adec-wfd.c
-
+           dsp/audiodsp-ctl.c audio_out/dtv_patch_out.c audio_out/aml_resample.c audiodsp_update_format.c
 LOCAL_MODULE := libamadec
 
 LOCAL_ARM_MODE := arm
@@ -110,7 +111,10 @@ LOCAL_CFLAGS := \
 
 LOCAL_C_INCLUDES:= \
     $(LOCAL_PATH)/include \
-	$(AMAVUTILS_INCLUDE)
+    $(AMAVUTILS_INCLUDE) \
+    frameworks/av/include \
+    system/media/audio/include \
+    system/libhidl/transport/token/1.0/utils/include
 
 
 LOCAL_CFLAGS += -DANDROID_PLATFORM_SDK_VERSION=$(PLATFORM_SDK_VERSION)
@@ -129,8 +133,8 @@ endif
 
 LOCAL_SRC_FILES := \
            adec-external-ctrl.c adec-internal-mgt.c adec-ffmpeg-mgt.c adec-message.c adec-pts-mgt.c feeder.c adec_write.c adec_read.c\
-           dsp/audiodsp-ctl.c audio_out/android-out.cpp audio_out/aml_resample.c audiodsp_update_format.c \
-           spdif_api.c pcmenc_api.c dts_transenc_api.c dts_enc.c adec_omx_brige.c adec-wfd.c
+           dsp/audiodsp-ctl.c audio_out/dtv_patch_out.c audio_out/aml_resample.c audiodsp_update_format.c \
+           adec_omx_brige.c adec-wfd.c
 
 LOCAL_MODULE := libamadec
 
@@ -142,101 +146,14 @@ LOCAL_ARM_MODE := arm
 ##################################################
 #$(shell cp $(LOCAL_PATH)/acodec_lib/*.so $(TARGET_OUT)/lib)
 ###################################################
-LOCAL_SHARED_LIBRARIES += libutils libmedia libz libbinder libdl libcutils libc libamadec_omx_api libamavutils liblog libaudioclient
+LOCAL_SHARED_LIBRARIES += libutils libz libbinder libdl libcutils libc libamavutils liblog
 
 LOCAL_PRELINK_MODULE := false
 LOCAL_MODULE_TAGS := optional
 include $(BUILD_SHARED_LIBRARY)
 
 
-###################module make file for libamadec_omx_api ######################################
-include $(CLEAR_VARS)
 
-LOCAL_CFLAGS := \
-        -fPIC -D_POSIX_SOURCE  -DDOLBY_DDPDEC51_MULTICHANNEL_ENDPOINT
-LOCAL_CFLAGS += -DANDROID_PLATFORM_SDK_VERSION=$(PLATFORM_SDK_VERSION)
-
-LOCAL_CLFAGS += -Werror -Wall -Wsign-compare -Wunused-parameter -Wunused-variable
-
-LOCAL_C_INCLUDES:= \
-    $(LOCAL_PATH)/omx_audio/include \
-    $(LOCAL_PATH)/omx_audio/../     \
-    $(LOCAL_PATH)/omx_audio/../include \
-    $(AMAVUTILS_INCLUDE) \
-    frameworks/native/include/media/openmax \
-    frameworks/native/libs/nativewindow/include/system \
-    frameworks/av/include/media/stagefright \
-    frameworks/av/include/media \
-    $(TOP)/hardware/amlogic/media/ammediaext \
-    frameworks/native/include/utils
-
-LOCAL_SRC_FILES := \
-    /omx_audio/adec_omx.cpp \
-    /omx_audio/audio_mediasource.cpp \
-    /omx_audio/DDP_mediasource.cpp \
-    /omx_audio/ALAC_mediasource.cpp \
-    /omx_audio/MP3_mediasource.cpp \
-    /omx_audio/ASF_mediasource.cpp  \
-    /omx_audio/DTSHD_mediasource.cpp \
-    /omx_audio/Vorbis_mediasource.cpp \
-    /omx_audio/THD_mediasource.cpp
-
-LOCAL_MODULE := libamadec_omx_api
-LOCAL_MODULE_TAGS := optional
-LOCAL_ARM_MODE := arm
-
-ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 26 && echo OK),OK)
-LOCAL_PROPRIETARY_MODULE := true
-endif
-
-LOCAL_SHARED_LIBRARIES += libutils libmedia libz libbinder libdl libcutils libc libstagefright \
-                          libstagefright_omx liblog libamavutils libstagefright_foundation libmediaextractor
-LOCAL_PRELINK_MODULE := false
-LOCAL_MODULE_TAGS := optional
-
-include $(BUILD_SHARED_LIBRARY)
-#########################################################
-
-
-###################module make wfd audioout api ######################################
-include $(CLEAR_VARS)
-
-LOCAL_CFLAGS := \
-        -fPIC -D_POSIX_SOURCE  -DDOLBY_DDPDEC51_MULTICHANNEL_ENDPOINT
-
-ifneq (0, $(shell expr $(PLATFORM_VERSION) \>= 4.3))
-    LOCAL_CFLAGS += -DANDROID_VERSION_JBMR2_UP=1
-endif
-ifneq (0, $(shell expr $(PLATFORM_VERSION) \> 4.1.0))
-    LOCAL_CFLAGS += -D_VERSION_JB
-else
-    ifneq (0, $(shell expr $(PLATFORM_VERSION) \> 4.0.0))
-        LOCAL_CFLAGS += -D_VERSION_ICS
-    endif
-endif
-LOCAL_CFLAGS += -DANDROID_PLATFORM_SDK_VERSION=$(PLATFORM_SDK_VERSION)
-LOCAL_C_INCLUDES:= \
-    external/tinyalsa/include
-
-LOCAL_SRC_FILES := \
-	adec-wfd-out.cpp
-
-LOCAL_MODULE := libamadec_wfd_out
-LOCAL_MODULE_TAGS := optional
-LOCAL_ARM_MODE := arm
-
-ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 26 && echo OK),OK)
-LOCAL_PROPRIETARY_MODULE := true
-endif
-
-LOCAL_SHARED_LIBRARIES += libutils libtinyalsa  liblog libmedia libcutils libc \
-         libmedia_helper libaudioclient libbinder libdl
-
-LOCAL_PRELINK_MODULE := false
-LOCAL_MODULE_TAGS := optional
-
-include $(BUILD_SHARED_LIBRARY)
-#########################################################
 
 
 #

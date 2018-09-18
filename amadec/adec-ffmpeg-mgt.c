@@ -1,3 +1,5 @@
+
+#define LOG_TAG "amadec"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,7 +20,6 @@
 #include <amthreadpool.h>
 #include <cutils/properties.h>
 
-#define LOG_TAG "adec-ffmpeg-mgt"
 extern int read_buffer(unsigned char *buffer, int size);
 void *audio_decode_loop(void *args);
 void *audio_dtsdecode_loop(void *args);
@@ -292,7 +293,7 @@ unsigned long  armdec_get_pts(dsp_operations_t *dsp_ops)
 
         }
     } else {
-        adec_print("====abuf have not open!\n");
+        //adec_print("====abuf have not open!\n");
     }
 
     if (am_getconfig_bool("media.arm.audio.apts_add")) {
@@ -390,7 +391,7 @@ unsigned long  armdec_get_pcrscr(dsp_operations_t *dsp_ops)
 {
     unsigned int val;
     if (dsp_ops->dsp_file_fd < 0) {
-        adec_print("read error!! audiodsp have not opened\n");
+        //adec_print("read error!! audiodsp have not opened\n");
         return -1;
     }
     ioctl(dsp_ops->dsp_file_fd, AMSTREAM_IOC_PCRSCR, &val);
@@ -650,7 +651,8 @@ static int audio_codec_init(aml_audio_dec_t *audec)
 
     int ret = 0;
     if (!audec->StageFrightCodecEnableType) { //1-decoder init
-        ret = audec->adec_ops->init(audec->adec_ops);
+        if (audec->adec_ops->init != NULL)
+          ret = audec->adec_ops->init(audec->adec_ops);
     }
     if (ret == -1) {
         adec_print("[%s %d]adec_ops init err\n", __FUNCTION__, __LINE__);
@@ -701,7 +703,8 @@ err2:
     OutBufferRelease(audec);
     return -1;
 err3:
-    audec->adec_ops->release(audec->adec_ops);
+	if (audec->adec_ops->release != NULL)
+        audec->adec_ops->release(audec->adec_ops);
     OutBufferRelease(audec);
     InBufferRelease(audec);
     OutBufferRelease_raw(audec);
@@ -712,7 +715,8 @@ int audio_codec_release(aml_audio_dec_t *audec)
     //1-decode thread quit
     if (!audec->StageFrightCodecEnableType) {
         stop_decode_thread(audec);//1-decode thread quit
-        audec->adec_ops->release(audec->adec_ops);//2-decoder release
+        if (audec->adec_ops->release != NULL)
+            audec->adec_ops->release(audec->adec_ops);//2-decoder release
     } else {
         stop_decode_thread_omx(audec);
     }
@@ -784,7 +788,7 @@ static int get_first_apts_flag(dsp_operations_t *dsp_ops)
 static int start_adec(aml_audio_dec_t *audec)
 {
     int ret;
-    audio_out_operations_t *aout_ops = &audec->aout_ops;
+    //audio_out_operations_t *aout_ops = &audec->aout_ops;
     dsp_operations_t *dsp_ops = &audec->adsp_ops;
     unsigned long  vpts, apts;
     int times = 0;
@@ -849,7 +853,7 @@ static int start_adec(aml_audio_dec_t *audec)
             adec_print("[wcs-%s]-before audio track start,sleep 200ms\n",__FUNCTION__);
             amthreadpool_thread_usleep(200 * 1000); //200ms
         }
-        aout_ops->start(audec);
+        //aout_ops->start(audec);
         audec->state = ACTIVE;
     } else {
         adec_print("amadec status invalid, start adec failed \n");
@@ -865,11 +869,11 @@ static int start_adec(aml_audio_dec_t *audec)
  */
 static void pause_adec(aml_audio_dec_t *audec)
 {
-    audio_out_operations_t *aout_ops = &audec->aout_ops;
+    //audio_out_operations_t *aout_ops = &audec->aout_ops;
     if (audec->state == ACTIVE) {
         audec->state = PAUSED;
         adec_pts_pause();
-        aout_ops->pause(audec);
+        //aout_ops->pause(audec);
     }
 }
 
@@ -879,12 +883,12 @@ static void pause_adec(aml_audio_dec_t *audec)
  */
 static void resume_adec(aml_audio_dec_t *audec)
 {
-    audio_out_operations_t *aout_ops = &audec->aout_ops;
+    //audio_out_operations_t *aout_ops = &audec->aout_ops;
     if (audec->state == PAUSED) {
         audec->state = ACTIVE;
         audec->refresh_pts_readytime_ms = gettime_ms() +
             am_getconfig_int_def("media.amadec.wait_fresh_ms", 200);
-        aout_ops->resume(audec);
+        //aout_ops->resume(audec);
         adec_pts_resume();
     }
 }
@@ -895,14 +899,14 @@ static void resume_adec(aml_audio_dec_t *audec)
  */
 static void stop_adec(aml_audio_dec_t *audec)
 {
-    audio_out_operations_t *aout_ops = &audec->aout_ops;
+    //audio_out_operations_t *aout_ops = &audec->aout_ops;
     adec_print("[%s %d]audec->state/%d\n", __FUNCTION__, __LINE__, audec->state);
     if (audec->state > INITING) {
         char buf[64];
 
         audec->state = STOPPED;
-        aout_ops->mute(audec, 1); //mute output, some repeat sound in audioflinger after stop
-        aout_ops->stop(audec);
+        //aout_ops->mute(audec, 1); //mute output, some repeat sound in audioflinger after stop
+        //aout_ops->stop(audec);
         audio_codec_release(audec);
 
         sprintf(buf, "0x%x", 0);
@@ -1147,6 +1151,8 @@ void *audio_getpackage_loop(void *args)
         nNextFrameSize = get_frame_size(audec); /*step 2  get read buffer size*/
         if (nNextFrameSize == -1) {
             nNextFrameSize = adec_ops->nInBufSize;
+            if (audec->format == ACODEC_FMT_AC3 || audec->format == ACODEC_FMT_EAC3 || audec->format == ACODEC_FMT_DTS)
+                nNextFrameSize = 2048;
         } else if (nNextFrameSize == 0) {
             amthreadpool_thread_usleep(1000);
             continue;
@@ -1171,6 +1177,7 @@ void *audio_getpackage_loop(void *args)
                 nReadSizePerTime = nNextReadSize;
             }
             nRet = read_buffer((unsigned char *)(inbuf + rlen), nReadSizePerTime); //read 10K per time
+            //adec_print("nRet:%d",nRet);
             if (nRet <= 0) {
                 sleeptime++;
                 amthreadpool_thread_usleep(1000);
@@ -1248,7 +1255,6 @@ void *audio_decode_loop(void *args)
     adec_ops->nAudioDecoderType = audec->format;
     while (1) {
 //exit_decode_loop:
-
         if (audec->exit_decode_thread) { //detect quit condition
             if (inbuf) {
                 free(inbuf);
@@ -1305,10 +1311,16 @@ void *audio_decode_loop(void *args)
                         break;
                     }
                 }
+                if (nAudioFormat == ACODEC_FMT_AC3 || nAudioFormat == ACODEC_FMT_EAC3 || nAudioFormat == ACODEC_FMT_DTS) {
+                    outlen = inlen;
+                    dlen =  inlen;
+                    memcpy(outbuf ,inbuf, inlen);
 
-                dlen = adec_ops->decode(audec->adec_ops, outbuf, &outlen, inbuf + declen, inlen);
+                } else
+                    dlen = adec_ops->decode(audec->adec_ops, outbuf, &outlen, inbuf + declen, inlen);
                 if (outlen > 0) {
-                    check_audio_info_changed(audec);
+                    if (nAudioFormat != ACODEC_FMT_AC3 && nAudioFormat != ACODEC_FMT_EAC3 && nAudioFormat != ACODEC_FMT_DTS)
+                        check_audio_info_changed(audec);
                 }
                 if (outlen > AVCODEC_MAX_AUDIO_FRAME_SIZE) {
                     adec_print("!!!!!fatal error,out buffer overwriten,out len %d,actual %d", outlen, AVCODEC_MAX_AUDIO_FRAME_SIZE);
@@ -1398,7 +1410,7 @@ void *adec_armdec_loop(void *args)
         if (audec->need_stop) {
             goto MSG_LOOP;
         }
-
+        adec_print("audio_codec_init");
         ret = audio_codec_init(audec);
         if (ret == 0) {
             break;
@@ -1413,7 +1425,7 @@ void *adec_armdec_loop(void *args)
             //no need to call release, will do it in stop_adec
             goto MSG_LOOP;
         }
-        if (audec->StageFrightCodecEnableType) {
+        if (/*audec->StageFrightCodecEnableType*/0) {
             start_decode_thread_omx(audec);
             if (audec->OmxFirstFrameDecoded != 1) { // just one case, need_stop == 1
                 //usleep(10000); // no need
@@ -1438,12 +1450,13 @@ void *adec_armdec_loop(void *args)
             amthreadpool_thread_usleep(10000);
         }
         adec_print("wait audio sr/channel done \n");
+     /*
         ret = aout_ops->init(audec);
         if (ret) {
             adec_print("[%s %d]Audio out device init failed!", __FUNCTION__, __LINE__);
             amthreadpool_thread_usleep(10000);
             continue;
-        }
+        }*/
         //ok
         break;
     }
@@ -1469,7 +1482,7 @@ MSG_LOOP:
 
             adec_print("Receive START Command!\n");
             //------------------------
-            if (!audec->StageFrightCodecEnableType) {
+            if (/*!audec->StageFrightCodecEnableType*/1) {
                 start_decode_thread(audec);
             }
             //------------------------

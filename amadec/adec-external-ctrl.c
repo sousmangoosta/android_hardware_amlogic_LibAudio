@@ -8,6 +8,7 @@
  * All right reserved
  *
  */
+#define LOG_TAG "amadec"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,13 +21,11 @@
 #include <audio-dec.h>
 #include <amthreadpool.h>
 
-
-#define LOG_TAG "adec-external-ctrl"
 int audio_decode_basic_init(void)
 {
-#ifndef ALSA_OUT
-    android_basic_init();
-#endif
+//#ifndef ALSA_OUT
+  //  android_basic_init();
+//#endif
     amthreadpool_system_init();
 
     return 0;
@@ -77,6 +76,7 @@ int audio_decode_init(void **handle, arm_audio_info *a_ainfo)
     }
     audec->adsp_ops.audec = audec;
     //  adec_print("audio_decode_init  pcodec = %d, pcodec->ctxCodec = %d!\n", pcodec, pcodec->ctxCodec);
+    adec_print("audiodec_init");
     ret = audiodec_init(audec);
     if (ret) {
         adec_print("adec init failed!");
