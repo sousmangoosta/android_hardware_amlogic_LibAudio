@@ -10,7 +10,7 @@ LOCAL_CFLAGS  += -DUSE_DEFAULT_STDLIB
 include $(BUILD_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
-LOCAL_SHARED_LIBRARIES += libutils libmedia libz libbinder libdl libcutils libc liblog
+LOCAL_SHARED_LIBRARIES += libutils libz libbinder libdl libcutils libc liblog
 LOCAL_CFLAGS  += -DUSE_DEFAULT_STDLIB
 LOCAL_MODULE    := libaac_helix
 LOCAL_SRC_FILES := $(notdir $(wildcard $(LOCAL_PATH)/*.c))

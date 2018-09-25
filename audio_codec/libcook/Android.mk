@@ -21,7 +21,7 @@ LOCAL_ARM_MODE := arm
 LOCAL_MODULE_TAGS := optional
 LOCAL_C_INCLUDES := $(LOCAL_PATH)
 
-LOCAL_SHARED_LIBRARIES += libutils libmedia libz libbinder libdl libcutils libc liblog
+LOCAL_SHARED_LIBRARIES += libutils libz libbinder libdl libcutils libc liblog
 
 LOCAL_PRELINK_MODULE := false
 
