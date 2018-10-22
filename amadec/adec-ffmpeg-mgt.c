@@ -153,7 +153,7 @@ static int64_t gettime_ms(void)
 {
     struct timeval tv;
     gettimeofday(&tv, NULL);
-    return (int64_t)tv.tv_sec * 1000 + tv.tv_usec/1000;
+    return (int64_t)tv.tv_sec * 1000 + tv.tv_usec / 1000;
 }
 
 
@@ -193,7 +193,8 @@ int package_add(aml_audio_dec_t * audec, char * data, int size)
     return 0;
 }
 
-struct package * package_get(aml_audio_dec_t * audec) {
+struct package * package_get(aml_audio_dec_t * audec)
+{
     lp_lock(&(audec->pack_list.tslock));
     if (audec->pack_list.pack_num == 0) {
         lp_unlock(&(audec->pack_list.tslock));
@@ -238,8 +239,11 @@ unsigned long  armdec_get_pts(dsp_operations_t *dsp_ops)
     aml_audio_dec_t *audec = (aml_audio_dec_t *)dsp_ops->audec;
     audio_out_operations_t * aout_ops = &audec->aout_ops;
     float  track_speed = 1.0f;
-    if (aout_ops->track_rate != 8.8f)
-        track_speed = aout_ops->track_rate;
+    if (aout_ops != NULL) {
+        if (aout_ops->track_rate != 8.8f) {
+            track_speed = aout_ops->track_rate;
+        }
+    }
     switch (audec->g_bst->data_width) {
     case AV_SAMPLE_FMT_U8:
         data_width = 8;
@@ -255,8 +259,7 @@ unsigned long  armdec_get_pts(dsp_operations_t *dsp_ops)
     }
 
     int pts_delta = 0;
-    if ( property_get("media.libplayer.pts_delta",value,NULL) > 0)
-    {
+    if (property_get("media.libplayer.pts_delta", value, NULL) > 0) {
         pts_delta = atoi(value);
     }
 
@@ -316,26 +319,30 @@ unsigned long  armdec_get_pts(dsp_operations_t *dsp_ops)
             int decodered_samples;
             int cache_samples;
             int delay_us, t_us;
-            decodered_samples = audec->decode_pcm_offset * 8 /(channels * data_width);
+            decodered_samples = audec->decode_pcm_offset * 8 / (channels * data_width);
             cache_samples = decodered_samples - postion;
-            if (cache_samples < 0)
+            if (cache_samples < 0) {
                 cache_samples = 0;
+            }
             delay_us = 1000 * (cache_samples * 1000 / samplerate);
             clock_gettime(CLOCK_MONOTONIC, &timenow);
-            t_us = timenow.tv_sec * 1000000LL + timenow.tv_nsec/1000 - time_us;
-            if (t_us > 0)
+            t_us = timenow.tv_sec * 1000000LL + timenow.tv_nsec / 1000 - time_us;
+            if (t_us > 0) {
                 delay_us -= t_us;
-            if (delay_us < 0)
+            }
+            if (delay_us < 0) {
                 delay_us = 0;
-            delay_pts = delay_us * 90/1000;
+            }
+            delay_pts = delay_us * 90 / 1000;
             if (pts == 0) {
                 int outsamples = postion - audec->last_out_postion ;
                 /*delay_us out samples after last refresh pts*/
                 delay_us = 1000 * (outsamples * 1000 / samplerate);
                 delay_us = delay_us * track_speed;
-                if (delay_us < 0)
+                if (delay_us < 0) {
                     delay_us = 0;
-                pts = audec->last_valid_pts + delay_us * 90 /1000;
+                }
+                pts = audec->last_valid_pts + delay_us * 90 / 1000;
                 audec->last_valid_pts = pts;
                 pts += 90000 / 1000 * pts_delta;
                 audec->last_out_postion = postion;
@@ -350,8 +357,7 @@ unsigned long  armdec_get_pts(dsp_operations_t *dsp_ops)
     } else {
         delay_pts = 0;
     }
-    if (delay_pts == 0)
-    {
+    if (delay_pts == 0) {
         if (pts == 0) {
             if (audec->last_valid_pts) {
                 pts = audec->last_valid_pts;
@@ -360,7 +366,7 @@ unsigned long  armdec_get_pts(dsp_operations_t *dsp_ops)
             pts += (frame_nums * 90000 / samplerate);
             pts += 90000 / 1000 * pts_delta;
             //if (pts < 0)
-             //   pts = 0;
+            //   pts = 0;
             //adec_print("decode_offset:%d out_pcm:%d   pts:%d \n",decode_offset,out_len_after_last_valid_pts,pts);
             return pts;
         }
@@ -383,7 +389,7 @@ unsigned long  armdec_get_pts(dsp_operations_t *dsp_ops)
 
     val += 90000 / 1000 * pts_delta; // for a/v sync test,some times audio ahead video +28ms.so add +15ms to apts to .....
     //if (val < 0)
-     //   val = 0;
+    //   val = 0;
     return val;
 }
 
@@ -651,8 +657,9 @@ static int audio_codec_init(aml_audio_dec_t *audec)
 
     int ret = 0;
     if (!audec->StageFrightCodecEnableType) { //1-decoder init
-        if (audec->adec_ops->init != NULL)
-          ret = audec->adec_ops->init(audec->adec_ops);
+        if (audec->adec_ops->init != NULL) {
+            ret = audec->adec_ops->init(audec->adec_ops);
+        }
     }
     if (ret == -1) {
         adec_print("[%s %d]adec_ops init err\n", __FUNCTION__, __LINE__);
@@ -703,8 +710,9 @@ err2:
     OutBufferRelease(audec);
     return -1;
 err3:
-	if (audec->adec_ops->release != NULL)
+    if (audec->adec_ops->release != NULL) {
         audec->adec_ops->release(audec->adec_ops);
+    }
     OutBufferRelease(audec);
     InBufferRelease(audec);
     OutBufferRelease_raw(audec);
@@ -715,8 +723,9 @@ int audio_codec_release(aml_audio_dec_t *audec)
     //1-decode thread quit
     if (!audec->StageFrightCodecEnableType) {
         stop_decode_thread(audec);//1-decode thread quit
-        if (audec->adec_ops->release != NULL)
-            audec->adec_ops->release(audec->adec_ops);//2-decoder release
+        if (audec->adec_ops->release != NULL) {
+            audec->adec_ops->release(audec->adec_ops);    //2-decoder release
+        }
     } else {
         stop_decode_thread_omx(audec);
     }
@@ -850,7 +859,7 @@ static int start_adec(aml_audio_dec_t *audec)
             audec->auto_mute = 0;
         }
         if (audec->tsync_mode == TSYNC_MODE_PCRMASTER) {
-            adec_print("[wcs-%s]-before audio track start,sleep 200ms\n",__FUNCTION__);
+            adec_print("[wcs-%s]-before audio track start,sleep 200ms\n", __FUNCTION__);
             amthreadpool_thread_usleep(200 * 1000); //200ms
         }
         //aout_ops->start(audec);
@@ -887,7 +896,7 @@ static void resume_adec(aml_audio_dec_t *audec)
     if (audec->state == PAUSED) {
         audec->state = ACTIVE;
         audec->refresh_pts_readytime_ms = gettime_ms() +
-            am_getconfig_int_def("media.amadec.wait_fresh_ms", 200);
+                                          am_getconfig_int_def("media.amadec.wait_fresh_ms", 200);
         //aout_ops->resume(audec);
         adec_pts_resume();
     }
@@ -1109,7 +1118,9 @@ static void check_audio_info_changed(aml_audio_dec_t *audec)
                     g_bst->channels = g_AudioInfo.channels;
                     g_bst->samplerate = g_AudioInfo.samplerate;
                     if (audec->state == ACTIVE)
-                        audec->aout_ops.pause(audec);
+                        if ((audec->aout_ops.pause != NULL)) {
+                            audec->aout_ops.pause(audec);
+                        }
                     audec->format_changed_flag = 1;
                 }
             }
@@ -1139,7 +1150,7 @@ void *audio_getpackage_loop(void *args)
     inlen = 0;
     nNextFrameSize = adec_ops->nInBufSize;
     while (1) {
-//exit_decode_loop:
+        //exit_decode_loop:
         if (audec->exit_decode_thread) { /*detect quit condition*/
             if (inbuf) {
                 free(inbuf);
@@ -1151,8 +1162,9 @@ void *audio_getpackage_loop(void *args)
         nNextFrameSize = get_frame_size(audec); /*step 2  get read buffer size*/
         if (nNextFrameSize == -1) {
             nNextFrameSize = adec_ops->nInBufSize;
-            if (audec->format == ACODEC_FMT_AC3 || audec->format == ACODEC_FMT_EAC3 || audec->format == ACODEC_FMT_DTS)
+            if (audec->format == ACODEC_FMT_AC3 || audec->format == ACODEC_FMT_EAC3 || audec->format == ACODEC_FMT_DTS) {
                 nNextFrameSize = 2048;
+            }
         } else if (nNextFrameSize == 0) {
             amthreadpool_thread_usleep(1000);
             continue;
@@ -1205,7 +1217,7 @@ void *audio_getpackage_loop(void *args)
         }
         inbuf = NULL;
     }
-//QUIT:
+    //QUIT:
     adec_print("[%s]Exit adec_getpackage_loop Thread finished!", __FUNCTION__);
     pthread_exit(NULL);
     return NULL;
@@ -1254,7 +1266,7 @@ void *audio_decode_loop(void *args)
     nNextFrameSize = adec_ops->nInBufSize;
     adec_ops->nAudioDecoderType = audec->format;
     while (1) {
-//exit_decode_loop:
+        //exit_decode_loop:
         if (audec->exit_decode_thread) { //detect quit condition
             if (inbuf) {
                 free(inbuf);
@@ -1314,13 +1326,15 @@ void *audio_decode_loop(void *args)
                 if (nAudioFormat == ACODEC_FMT_AC3 || nAudioFormat == ACODEC_FMT_EAC3 || nAudioFormat == ACODEC_FMT_DTS) {
                     outlen = inlen;
                     dlen =  inlen;
-                    memcpy(outbuf ,inbuf, inlen);
+                    memcpy(outbuf , inbuf, inlen);
 
-                } else
+                } else {
                     dlen = adec_ops->decode(audec->adec_ops, outbuf, &outlen, inbuf + declen, inlen);
+                }
                 if (outlen > 0) {
-                    if (nAudioFormat != ACODEC_FMT_AC3 && nAudioFormat != ACODEC_FMT_EAC3 && nAudioFormat != ACODEC_FMT_DTS)
+                    if (nAudioFormat != ACODEC_FMT_AC3 && nAudioFormat != ACODEC_FMT_EAC3 && nAudioFormat != ACODEC_FMT_DTS) {
                         check_audio_info_changed(audec);
+                    }
                 }
                 if (outlen > AVCODEC_MAX_AUDIO_FRAME_SIZE) {
                     adec_print("!!!!!fatal error,out buffer overwriten,out len %d,actual %d", outlen, AVCODEC_MAX_AUDIO_FRAME_SIZE);
@@ -1389,7 +1403,7 @@ void *audio_decode_loop(void *args)
 
     adec_print("[%s]exit adec_armdec_loop Thread finished!", __FUNCTION__);
     pthread_exit(NULL);
-//error:
+    //error:
     //pthread_exit(NULL);
     return NULL;
 }
@@ -1450,13 +1464,13 @@ void *adec_armdec_loop(void *args)
             amthreadpool_thread_usleep(10000);
         }
         adec_print("wait audio sr/channel done \n");
-     /*
-        ret = aout_ops->init(audec);
-        if (ret) {
-            adec_print("[%s %d]Audio out device init failed!", __FUNCTION__, __LINE__);
-            amthreadpool_thread_usleep(10000);
-            continue;
-        }*/
+        /*
+           ret = aout_ops->init(audec);
+           if (ret) {
+               adec_print("[%s %d]Audio out device init failed!", __FUNCTION__, __LINE__);
+               amthreadpool_thread_usleep(10000);
+               continue;
+           }*/
         //ok
         break;
     }
@@ -1469,8 +1483,9 @@ MSG_LOOP:
 
         adec_reset_track(audec);
         adec_flag_check(audec);
-        if (audec->state == ACTIVE)
+        if (audec->state == ACTIVE) {
             adec_refresh_pts(audec);
+        }
         msg = adec_get_message(audec);
         if (!msg) {
             amthreadpool_thread_usleep(10 * 1000); //if not wait,need changed to amthread usleep
