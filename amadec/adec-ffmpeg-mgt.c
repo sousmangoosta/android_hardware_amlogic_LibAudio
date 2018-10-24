@@ -1203,7 +1203,6 @@ void *audio_getpackage_loop(void *args)
                 }
             }
         }
-        //      adec_print(" read data %d,sleep time %d ms    \n",  rlen,sleeptime);
 
         sleeptime = 0;
         nCurrentReadCount = rlen;
@@ -1435,10 +1434,6 @@ void *adec_armdec_loop(void *args)
 
     //start decode thread
     while (1) {
-        if (audec->need_stop) {
-            //no need to call release, will do it in stop_adec
-            goto MSG_LOOP;
-        }
         if (/*audec->StageFrightCodecEnableType*/0) {
             start_decode_thread_omx(audec);
             if (audec->OmxFirstFrameDecoded != 1) { // just one case, need_stop == 1
@@ -1454,10 +1449,6 @@ void *adec_armdec_loop(void *args)
 
     //aout init
     while (1) {
-        if (audec->need_stop) {
-            //no need to call release, will do it in stop_adec
-            goto MSG_LOOP;
-        }
         //wait the audio sr/ch ready to set audio track.
         adec_print("wait audio sr/channel begin \n");
         while (((!audec->channels) || (!audec->samplerate)) && !audec->need_stop) {
