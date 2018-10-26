@@ -8,7 +8,7 @@
  * All right reserved
  *
  */
- #define LOG_TAG "amadec"
+#define LOG_TAG "amadec"
 #include <fcntl.h>
 #include <linux/soundcard.h>
 #include <stdio.h>
@@ -174,7 +174,7 @@ static void *dtv_patch_out_loop(void *args)
             // pts = audec->adsp_ops.get_cur_pts(&audec->adsp_ops);
             len2 = audec->adsp_ops.dsp_read(&audec->adsp_ops, (buffer + len),
                                             (OUTPUT_BUFFER_SIZE - len));
-			adec_print("len2 %d",len2);
+            //adec_print("len2 %d", len2);
             len = len + len2;
             offset = 0;
         }
@@ -191,9 +191,9 @@ static void *dtv_patch_out_loop(void *args)
             len2 = patchparm->pcmout_cb((unsigned char *)(buffer + offset), len, samplerate,
                                         channels, patchparm->pargs);
             //  if (len2 == 0)
-            adec_print(
-                "========now send the data from the buffer len %d  send %d  ",
-                len, len2);
+            // adec_print(
+            //     "========now send the data from the buffer len %d  send %d  ",
+            //     len, len2);
             if (len2 == 0) {
                 usleep(10000);
             }
@@ -299,7 +299,7 @@ int dtv_patch_input_stop(unsigned int handle)
     paramout->state = DTV_PATCH_STATE_STOPED;
     adec_print("now enter the audio decoder stop now111111!\n");
     audio_decode_stop(paramout->audec);
-    audio_decode_release((void **)&(paramout->audec));
+    audio_decode_release((void **) & (paramout->audec));
     paramout->audec = NULL;
     adec_print("now enter the audio decoder stop now2222222!\n");
     pthread_mutex_unlock(&patch_out_mutex);

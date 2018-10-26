@@ -27,6 +27,8 @@ void *audio_getpackage_loop(void *args);
 static int set_sysfs_int(const char *path, int val);
 static void stop_decode_thread(aml_audio_dec_t *audec);
 
+#define DTV_APTS_LOOKUP_PATH "/sys/class/tsync/apts_lookup"
+
 #define AVCODEC_MAX_AUDIO_FRAME_SIZE 500*1024
 
 /*audio decoder list structure*/
@@ -58,6 +60,32 @@ audio_lib_t audio_lib_list[] = {
     {ACODEC_FMT_ADPCM, "libadpcm.so"},
     {ACODEC_FMT_DRA, "libdra.so"}
 } ;
+
+
+static unsigned long adec_apts_lookup(unsigned long offset)
+{
+    unsigned int pts = 0;
+    int ret;
+    char buff[32];
+
+    ret = amsysfs_set_sysfs_int(DTV_APTS_LOOKUP_PATH, offset);
+    if (ret == 0) {
+        ret = amsysfs_get_sysfs_str(DTV_APTS_LOOKUP_PATH, buff, sizeof(buff));
+        if (ret == 0) {
+            //adec_print("adec_apts_lookup   get pts %s\n",buff);
+            ret = sscanf(buff, "0x%x\n", &pts);
+        } else {
+            adec_print("amsysfs_get_sysfs_str DTV_APTS_LOOKUP_PATH failed\n");
+        }
+    } else {
+        adec_print("amsysfs_set_sysfs_int DTV_APTS_LOOKUP_PATH failed\n");
+    }
+    if (pts == (unsigned int) - 1) {
+        pts = 0;
+    }
+    return (unsigned long)pts;
+}
+
 
 int find_audio_lib(aml_audio_dec_t *audec)
 {
@@ -234,7 +262,6 @@ unsigned long  armdec_get_pts(dsp_operations_t *dsp_ops)
     unsigned long pts;
     int data_width, channels, samplerate;
     unsigned long long frame_nums ;
-    unsigned long delay_pts;
     char value[PROPERTY_VALUE_MAX];
     aml_audio_dec_t *audec = (aml_audio_dec_t *)dsp_ops->audec;
     audio_out_operations_t * aout_ops = &audec->aout_ops;
@@ -296,96 +323,36 @@ unsigned long  armdec_get_pts(dsp_operations_t *dsp_ops)
 
         }
     } else {
-        //adec_print("====abuf have not open!\n");
+
+        if (!audec->first_apts_lookup_over) {
+            offset = 0;
+            adec_print("====first_apts_lookup_over:%lx offset:%ld \n", val, offset);
+        } else {
+            offset  = audec->decode_offset;
+        }
+
+        pts =  adec_apts_lookup(offset);
     }
 
-    if (am_getconfig_bool("media.arm.audio.apts_add")) {
-        offset = 0;
-    }
-    pts = offset;
     if (!audec->first_apts_lookup_over) {
+        adec_print("====get pts:%lx offset:%ld \n", pts, offset);
         audec->last_valid_pts = pts;
         audec->first_apts_lookup_over = 1;
         return pts;
     }
-
-    if (audec->use_get_out_posion && audec->aout_ops.get_out_position) {
-        /*add by zz*/
-        int64_t postion, time_us;
-        struct timespec timenow;
-        int ret;
-        ret = audec->aout_ops.get_out_position(audec, &postion, &time_us);
-        if (!ret) {
-            int decodered_samples;
-            int cache_samples;
-            int delay_us, t_us;
-            decodered_samples = audec->decode_pcm_offset * 8 / (channels * data_width);
-            cache_samples = decodered_samples - postion;
-            if (cache_samples < 0) {
-                cache_samples = 0;
-            }
-            delay_us = 1000 * (cache_samples * 1000 / samplerate);
-            clock_gettime(CLOCK_MONOTONIC, &timenow);
-            t_us = timenow.tv_sec * 1000000LL + timenow.tv_nsec / 1000 - time_us;
-            if (t_us > 0) {
-                delay_us -= t_us;
-            }
-            if (delay_us < 0) {
-                delay_us = 0;
-            }
-            delay_pts = delay_us * 90 / 1000;
-            if (pts == 0) {
-                int outsamples = postion - audec->last_out_postion ;
-                /*delay_us out samples after last refresh pts*/
-                delay_us = 1000 * (outsamples * 1000 / samplerate);
-                delay_us = delay_us * track_speed;
-                if (delay_us < 0) {
-                    delay_us = 0;
-                }
-                pts = audec->last_valid_pts + delay_us * 90 / 1000;
-                audec->last_valid_pts = pts;
-                pts += 90000 / 1000 * pts_delta;
-                audec->last_out_postion = postion;
-                audec->last_get_postion_time_us = time_us;
-                return pts;
-            }
-            audec->last_out_postion = postion;
-            audec->last_get_postion_time_us = time_us;
-        } else {
-            delay_pts = 0;/*audio track not ready? used buf_level add for pts*/
-        }
-    } else {
-        delay_pts = 0;
-    }
-    if (delay_pts == 0) {
-        if (pts == 0) {
-            if (audec->last_valid_pts) {
-                pts = audec->last_valid_pts;
-            }
-            frame_nums = (audec->out_len_after_last_valid_pts * 8 / (data_width * channels));
-            pts += (frame_nums * 90000 / samplerate);
-            pts += 90000 / 1000 * pts_delta;
-            //if (pts < 0)
-            //   pts = 0;
-            //adec_print("decode_offset:%d out_pcm:%d   pts:%d \n",decode_offset,out_len_after_last_valid_pts,pts);
+    {
+        if ((pts == 0) || (audec->last_valid_pts == pts)) {
+            pts = (unsigned long) - 1;
             return pts;
         }
-        {
-            int len = audec->g_bst->buf_level + audec->pcm_cache_size;
-            frame_nums = (len * 8 / (data_width * channels));
-            delay_pts = (frame_nums * 90000 / samplerate);
-        }
     }
-    delay_pts = delay_pts * track_speed;
-    if (pts > delay_pts) {
-        pts -= delay_pts;
-    } else {
-        pts = 0;
-    }
-    val = pts;
+
     audec->last_valid_pts = pts;
+    frame_nums = (audec->g_bst->buf_level * 8 / (data_width * channels));
+    pts -= (frame_nums * 90000 / samplerate);
+    val = pts;
     audec->out_len_after_last_valid_pts = 0;
-    //adec_print("====get pts:%ld offset:%ld frame_num:%lld delay:%ld \n",val,decode_offset,frame_nums,delay_pts);
+    adec_print("====get pts:%lx offset:%ld frame_num:%lld \n", val, audec->decode_offset, frame_nums);
 
     val += 90000 / 1000 * pts_delta; // for a/v sync test,some times audio ahead video +28ms.so add +15ms to apts to .....
     //if (val < 0)
@@ -796,7 +763,6 @@ static int get_first_apts_flag(dsp_operations_t *dsp_ops)
  */
 static int start_adec(aml_audio_dec_t *audec)
 {
-    int ret;
     //audio_out_operations_t *aout_ops = &audec->aout_ops;
     dsp_operations_t *dsp_ops = &audec->adsp_ops;
     unsigned long  vpts, apts;
@@ -847,22 +813,16 @@ static int start_adec(aml_audio_dec_t *audec)
         }
 
         /*start  the  the pts scr,...*/
-        ret = adec_pts_start(audec);
         if (audec->auto_mute) {
-            avsync_en(0);
-            adec_pts_pause();
             while ((!audec->need_stop) && track_switch_pts(audec)) {
                 amthreadpool_thread_usleep(1000);
             }
-            avsync_en(1);
-            adec_pts_resume();
             audec->auto_mute = 0;
         }
         if (audec->tsync_mode == TSYNC_MODE_PCRMASTER) {
             adec_print("[wcs-%s]-before audio track start,sleep 200ms\n", __FUNCTION__);
             amthreadpool_thread_usleep(200 * 1000); //200ms
         }
-        //aout_ops->start(audec);
         audec->state = ACTIVE;
     } else {
         adec_print("amadec status invalid, start adec failed \n");
@@ -1380,7 +1340,7 @@ void *audio_decode_loop(void *args)
                     audec->decode_offset += dlen;
                 }
                 audec->decode_pcm_offset += outlen;
-                audec->pcm_cache_size = outlen;
+
                 if (g_bst) {
                     int wlen = 0;
                     while (outlen && !audec->exit_decode_thread) {
@@ -1390,7 +1350,6 @@ void *audio_decode_loop(void *args)
                         }
                         wlen = write_pcm_buffer(outbuf, g_bst, outlen);
                         outlen -= wlen;
-                        audec->pcm_cache_size -= wlen;
                     }
                 }
             }
@@ -1474,9 +1433,7 @@ MSG_LOOP:
 
         adec_reset_track(audec);
         adec_flag_check(audec);
-        if (audec->state == ACTIVE) {
-            adec_refresh_pts(audec);
-        }
+
         msg = adec_get_message(audec);
         if (!msg) {
             amthreadpool_thread_usleep(10 * 1000); //if not wait,need changed to amthread usleep
