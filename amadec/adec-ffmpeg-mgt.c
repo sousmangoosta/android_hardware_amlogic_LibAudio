@@ -142,28 +142,6 @@ static audio_decoder_operations_t AudioArmDecoder = {
     0,
 };
 
-static int FFmpegDecoderInit(audio_decoder_operations_t *adec_ops __unused)
-{
-    return 0;
-}
-static int FFmpegDecode(audio_decoder_operations_t *adec_ops __unused, char *outbuf __unused, int *outlen __unused, char *inbuf __unused, int inlen __unused)
-{
-    return 0;
-}
-static int FFmpegDecoderRelease(audio_decoder_operations_t *adec_ops __unused)
-{
-    //aml_audio_dec_t *audec = (aml_audio_dec_t *)(adec_ops->priv_data);
-    return 0;
-}
-audio_decoder_operations_t AudioFFmpegDecoder = {
-    .name = "FFmpegDecoder",
-    .nAudioDecoderType = AUDIO_FFMPEG_DECODER,
-    .init = FFmpegDecoderInit,
-    .decode = FFmpegDecode,
-    .release = FFmpegDecoderRelease,
-    .getinfo = NULL,
-};
-
 int package_list_free(aml_audio_dec_t * audec)
 {
     lp_lock(&(audec->pack_list.tslock));
@@ -407,24 +385,13 @@ int get_decoder_status(void *p, struct adec_status *adec)
  * \param audec pointer to audec ,codec_type
  * \return 0 on success otherwise -1 if an error occurred
  */
-int RegisterDecode(aml_audio_dec_t *audec, int type)
+int RegisterDecode(aml_audio_dec_t *audec)
 {
-    switch (type) {
-    case AUDIO_ARM_DECODER:
-        memset(&AudioArmDecoder, 0, sizeof(audio_decoder_operations_t));
-        audec->adec_ops = &AudioArmDecoder;
-        find_audio_lib(audec);
-        audec->adec_ops->priv_data = audec;
-        break;
-    case AUDIO_FFMPEG_DECODER:
-        audec->adec_ops = &AudioFFmpegDecoder;
-        audec->adec_ops->priv_data = audec;
-        break;
-    default:
-        audec->adec_ops = &AudioFFmpegDecoder;
-        audec->adec_ops->priv_data = audec;
-        break;
-    }
+    memset(&AudioArmDecoder, 0, sizeof(audio_decoder_operations_t));
+    audec->adec_ops = &AudioArmDecoder;
+    find_audio_lib(audec);
+    audec->adec_ops->priv_data = audec;
+
     return 0;
 }
 
@@ -1123,7 +1090,7 @@ void *audio_getpackage_loop(void *args)
         if (nNextFrameSize == -1) {
             nNextFrameSize = adec_ops->nInBufSize;
             if (audec->format == ACODEC_FMT_AC3 || audec->format == ACODEC_FMT_EAC3 || audec->format == ACODEC_FMT_DTS) {
-                nNextFrameSize = 2048;
+                nNextFrameSize = 512;
             }
         } else if (nNextFrameSize == 0) {
             amthreadpool_thread_usleep(1000);
@@ -1141,7 +1108,7 @@ void *audio_getpackage_loop(void *args)
         int nRet = 0;
         //int nReadErrCount = 0;
         int nCurrentReadCount = 0;
-        int nReadSizePerTime = 1 * 1024;
+        int nReadSizePerTime = 512;
         rlen = 0;
         int sleeptime = 0;
         while (nNextReadSize > 0 && !audec->exit_decode_thread) {
@@ -1431,7 +1398,6 @@ void *adec_armdec_loop(void *args)
 MSG_LOOP:
     do {
 
-        adec_reset_track(audec);
         adec_flag_check(audec);
 
         msg = adec_get_message(audec);

@@ -36,7 +36,7 @@ LOCAL_SHARED_LIBRARIES += libasound audio.primary.amlogic
 
 LOCAL_SRC_FILES := \
            adec-external-ctrl.c adec-internal-mgt.c adec-ffmpeg-mgt.c adec-message.c adec-pts-mgt.c feeder.c adec_write.c adec_read.c\
-           dsp/audiodsp-ctl.c audio_out/alsa-out.c audio_out/aml_resample.c audiodsp_update_format.c spdif_api.c pcmenc_api.c \
+           audio_out/alsa-out.c audio_out/aml_resample.c audiodsp_update_format.c spdif_api.c pcmenc_api.c \
            dts_transenc_api.c dts_enc.c adec_omx_brige.c
 
 LOCAL_MODULE := libamadec_alsa
@@ -89,8 +89,8 @@ else
 endif
 
 LOCAL_SRC_FILES := \
-           adec-external-ctrl.c adec-internal-mgt.c adec-ffmpeg-mgt.c adec-message.c adec-pts-mgt.c feeder.c adec_write.c adec_read.c\
-           dsp/audiodsp-ctl.c audio_out/dtv_patch_out.c audio_out/aml_resample.c audiodsp_update_format.c
+           adec-external-ctrl.c adec-internal-mgt.c adec-ffmpeg-mgt.c adec-message.c adec-pts-mgt.c adec_write.c adec_read.c\
+           audio_out/dtv_patch_out.c audio_out/aml_resample.c audiodsp_update_format.c
 LOCAL_MODULE := libamadec
 
 LOCAL_ARM_MODE := arm
@@ -132,9 +132,9 @@ else
 endif
 
 LOCAL_SRC_FILES := \
-           adec-external-ctrl.c adec-internal-mgt.c adec-ffmpeg-mgt.c adec-message.c adec-pts-mgt.c feeder.c adec_write.c adec_read.c\
-           dsp/audiodsp-ctl.c audio_out/dtv_patch_out.c audio_out/aml_resample.c audiodsp_update_format.c \
-           adec_omx_brige.c adec-wfd.c
+           adec-external-ctrl.c adec-internal-mgt.c adec-ffmpeg-mgt.c adec-message.c adec-pts-mgt.c adec_write.c adec_read.c\
+           audio_out/dtv_patch_out.c  \
+           adec_omx_brige.c
 
 LOCAL_MODULE := libamadec
 

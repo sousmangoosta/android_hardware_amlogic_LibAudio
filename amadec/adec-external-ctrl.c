@@ -23,9 +23,9 @@
 
 int audio_decode_basic_init(void)
 {
-//#ifndef ALSA_OUT
-  //  android_basic_init();
-//#endif
+    //#ifndef ALSA_OUT
+    //  android_basic_init();
+    //#endif
     amthreadpool_system_init();
 
     return 0;
@@ -66,7 +66,7 @@ int audio_decode_init(void **handle, arm_audio_info *a_ainfo)
     audec->block_align = a_ainfo->block_align;
     audec->codec_id = a_ainfo->codec_id;
     audec->auto_mute = a_ainfo->automute;
-    audec->has_video=a_ainfo->has_video;
+    audec->has_video = a_ainfo->has_video;
     if (a_ainfo->droppcm_flag) {
         audec->droppcm_flag = a_ainfo->droppcm_flag;
         a_ainfo->droppcm_flag = 0;
@@ -614,7 +614,7 @@ int audio_channel_lrmix_flag_set(void *handle, int enable)
     return ret;
 }
 
-int audio_decpara_get(void *handle, int *pfs, int *pch ,int *lfepresent)
+int audio_decpara_get(void *handle, int *pfs, int *pch , int *lfepresent)
 {
     int ret = 0;
     aml_audio_dec_t *audec = (aml_audio_dec_t *)handle;
@@ -671,29 +671,6 @@ int audio_dec_ready(void *handle)
 }
 
 /**
- * \brief get audio dsp decoded frame number
- * \param handle pointer to player private data
- * \return n = audiodec frame number, -1 = error
- */
-int audio_get_decoded_nb_frames(void *handle)
-{
-    aml_audio_dec_t *audec = (aml_audio_dec_t *)handle;
-
-    if (!handle) {
-        adec_print("audio handle is NULL !\n");
-        return -1;
-    }
-
-    audec->decoded_nb_frames = audiodsp_get_decoded_nb_frames(&audec->adsp_ops);
-    //adec_print("audio_get_decoded_nb_frames:  %d!", audec->decoded_nb_frames);
-    if (audec->decoded_nb_frames >= 0) {
-        return audec->decoded_nb_frames;
-    } else {
-        return -2;
-    }
-}
-
-/**
  * \brief set av sync threshold in ms.
  * \param handle pointer to player private data
  * \param threshold av sync time threshold in ms
@@ -729,38 +706,8 @@ int audio_get_soundtrack(void *handle, int* strack)
     return ret;
 }
 
-int audio_get_pcm_level(void* handle)
-{
-    aml_audio_dec_t* audec = (aml_audio_dec_t*)handle;
-    if (!handle) {
-        adec_print("audio handle is NULL !\n");
-        return -1;
-    }
 
-    return audiodsp_get_pcm_level(&audec->adsp_ops);
 
-}
-
-int audio_set_skip_bytes(void* handle, unsigned int bytes)
-{
-    aml_audio_dec_t* audec = (aml_audio_dec_t*) handle;
-    if (!handle) {
-        adec_print("audio handle is NULL !!\n");
-        return -1;
-    }
-
-    return audiodsp_set_skip_bytes(&audec->adsp_ops, bytes);
-}
-
-int audio_get_pts(void* handle)
-{
-    aml_audio_dec_t* audec = (aml_audio_dec_t*)handle;
-    if (!handle) {
-        adec_print("audio handle is NULL !\n");
-        return -1;
-    }
-    return audiodsp_get_pts(&audec->adsp_ops);
-}
 /*
     @get the audio decoder enabled status ,special for dts/dolby audio ,
     @note that :this should be called after audio_decode_start,
@@ -788,8 +735,8 @@ int audio_get_decoded_pcm_delay(void *handle)
 {
     aml_audio_dec_t *audec = (aml_audio_dec_t *)handle;
     if (!audec) {
-       adec_print("audec null\n");
-       return -1;
+        adec_print("audec null\n");
+        return -1;
     }
     buffer_stream_t  *g_bst = audec->g_bst;
     if (!handle) {
@@ -813,12 +760,11 @@ int audio_get_format_supported(int format)
 {
     int enable = 1;
     if (format == ACODEC_FMT_DRA) {
-        if (access("/system/lib/libdra.so",F_OK)) {
+        if (access("/system/lib/libdra.so", F_OK)) {
             enable = 0;
         }
-    }
-    else if (format < ACODEC_FMT_MPEG || format > ACODEC_FMT_WMAVOI) {
-        adec_print("unsupported format %d\n",format);
+    } else if (format < ACODEC_FMT_MPEG || format > ACODEC_FMT_WMAVOI) {
+        adec_print("unsupported format %d\n", format);
         enable = 0;
     }
     return enable;
@@ -832,8 +778,9 @@ int audio_decoder_set_trackrate(void* handle, void *rate)
         return -1;
     }
     aout_ops =  &audec->aout_ops;
-    if (aout_ops->set_track_rate)
-        return aout_ops->set_track_rate(audec,rate);
+    if (aout_ops->set_track_rate) {
+        return aout_ops->set_track_rate(audec, rate);
+    }
     return 0;
 }
 
@@ -879,15 +826,13 @@ int audio_send_associate_data(void* handle __unused, uint8_t *buf __unused, size
         if ((audec->associate_dec_supported) && (audec->g_assoc_bst)) {
             if (audec->associate_audio_enable == 1) {
                 ret = write_es_buffer(buf, audec->g_assoc_bst, size);
-            }
-            else {
+            } else {
                 adec_print("[%s]-[associate_audio_enable:%d]\n", __FUNCTION__, audec->associate_audio_enable);
                 ret = reset_buffer(audec->g_assoc_bst);
             }
-        }
-        else {
+        } else {
             adec_print("[%s]-[associate_dec_supported:%d]-[g_assoc_bst:%p]\n",
-                __FUNCTION__, audec->associate_dec_supported, audec->g_assoc_bst);
+                       __FUNCTION__, audec->associate_dec_supported, audec->g_assoc_bst);
             ret = -1;
         }
     }
