@@ -1,7 +1,7 @@
 #ifndef DTV_PATCH_OUT_H
 #define DTV_PATCH_OUT_H
 
-#define OUTPUT_BUFFER_SIZE (8 * 1024)
+#define OUTPUT_BUFFER_SIZE (6 * 1024)
 
 typedef int (*out_pcm_write)(unsigned char *pcm_data, int size, int symbolrate, int channel, void *args);
 typedef int (*out_raw_wirte)(unsigned char *raw_data, int size,

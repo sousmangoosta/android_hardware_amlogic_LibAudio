@@ -25,8 +25,6 @@
 #include <amthreadpool.h>
 #include <dtv_patch_out.h>
 
-#define OUTPUT_BUFFER_SIZE (8 * 1024)
-
 #define AUD_ASSO_PROP "media.audio.enable_asso"
 #define AUD_ASSO_MIX_PROP "media.audio.mix_asso"
 #define VID_DISABLED_PROP "media.dvb.video.disabled"
@@ -118,6 +116,7 @@ static void *dtv_patch_out_loop(void *args)
     int len = 0;
     int len2 = 0;
     int offset = 0;
+    int readcount = 0;
     //unsigned space_size = 0;
     //unsigned long pts;
     char *buffer =
@@ -172,8 +171,18 @@ static void *dtv_patch_out_loop(void *args)
                 continue;
             }
             // pts = audec->adsp_ops.get_cur_pts(&audec->adsp_ops);
-            len2 = audec->adsp_ops.dsp_read(&audec->adsp_ops, (buffer + len),
+            if (audec->g_bst->buf_level < (OUTPUT_BUFFER_SIZE - len) &&
+                readcount < 25 &&
+                (audec->format == ACODEC_FMT_AC3 ||
+                audec->format == ACODEC_FMT_EAC3 ||
+                audec->format == ACODEC_FMT_DTS) ) {
+                len2 = 0;
+                readcount++;
+            } else {
+                len2 = audec->adsp_ops.dsp_read(&audec->adsp_ops, (buffer + len),
                                             (OUTPUT_BUFFER_SIZE - len));
+                readcount = 0;
+            }
             //adec_print("len2 %d", len2);
             len = len + len2;
             offset = 0;
