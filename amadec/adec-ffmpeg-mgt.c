@@ -1052,18 +1052,18 @@ static void check_audio_info_changed(aml_audio_dec_t *audec)
             } else {
                 //experienc value:0.2 Secs
                 BufLevelAllowDoFmtChg = audec->samplerate * audec->channels * (audec->adec_ops->bps >> 3) / 5;
-                while ((audec->format_changed_flag || g_bst->buf_level > BufLevelAllowDoFmtChg) && !audec->exit_decode_thread) {
-                    amthreadpool_thread_usleep(20000);
-                }
+//                while ((audec->format_changed_flag || g_bst->buf_level > BufLevelAllowDoFmtChg) && !audec->exit_decode_thread) {
+//                    amthreadpool_thread_usleep(20000);
+//                }
                 if (!audec->exit_decode_thread) {
                     adec_print("[%s]Info Changed: src:sample:%d  channel:%d dest sample:%d  channel:%d PCMBufLevel:%d\n",
                                __FUNCTION__, audec->samplerate, audec->channels, g_AudioInfo.samplerate, g_AudioInfo.channels, g_bst->buf_level);
                     g_bst->channels = g_AudioInfo.channels;
                     g_bst->samplerate = g_AudioInfo.samplerate;
-                    if (audec->state == ACTIVE)
-                        if ((audec->aout_ops.pause != NULL)) {
-                            audec->aout_ops.pause(audec);
-                        }
+                    // if (audec->state == ACTIVE)
+                    //     if ((audec->aout_ops.pause != NULL)) {
+                    //         audec->aout_ops.pause(audec);
+                    //     }
                     audec->format_changed_flag = 1;
                 }
             }
