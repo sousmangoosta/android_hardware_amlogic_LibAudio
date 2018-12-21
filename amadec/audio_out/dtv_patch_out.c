@@ -138,11 +138,8 @@ static void *dtv_patch_out_loop(void *args)
     while (!(patchparm->state == DTV_PATCH_STATE_STOPED)) {
         // pthread_mutex_lock(&patch_out_mutex);
         {
-            if (patchparm->state == DTV_PATCH_STATE_STOPED) {
-                // pthread_mutex_unlock(&patch_out_mutex);
-                goto exit;
-            }
-            while (patchparm->state == DTV_PATCH_STATE_PAUSE) {
+
+            if (patchparm->state == DTV_PATCH_STATE_PAUSE) {
                 // pthread_mutex_unlock(&patch_out_mutex);
                 usleep(10000);
                 continue;
@@ -177,6 +174,9 @@ static void *dtv_patch_out_loop(void *args)
             }
 
             if (patchparm->space_cb(patchparm->pargs) < 4096) {
+                if (patchparm->state == DTV_PATCH_STATE_STOPED) {
+                goto exit;
+            }
                 usleep(10000);
                 continue;
             }
@@ -199,6 +199,9 @@ static void *dtv_patch_out_loop(void *args)
         }
 
         if (len == 0) {
+            if (patchparm->state == DTV_PATCH_STATE_STOPED) {
+                goto exit;
+            }
             usleep(10000);
             continue;
         }
@@ -214,6 +217,9 @@ static void *dtv_patch_out_loop(void *args)
             //     "========now send the data from the buffer len %d  send %d  ",
             //     len, len2);
             if (len2 == 0) {
+                if (patchparm->state == DTV_PATCH_STATE_STOPED) {
+                    goto exit;
+                }
                 usleep(10000);
             }
         }
@@ -310,21 +316,23 @@ int dtv_patch_input_stop(unsigned int handle)
     if (out_patch_initd == 0) {
         return -1;
     }
-
+    
     adec_print("now enter the audio decoder stop now!\n");
 
     dtv_patch_out *paramout = get_patchout();
     pthread_mutex_lock(&patch_out_mutex);
     paramout->state = DTV_PATCH_STATE_STOPED;
+    pthread_join(paramout->tid, NULL);
     adec_print("now enter the audio decoder stop now111111!\n");
     audio_decode_stop(paramout->audec);
     audio_decode_release((void **) & (paramout->audec));
+
+    adec_print("now enter the audio decoder stop now222222!\n");
     paramout->audec = NULL;
-    adec_print("now enter the audio decoder stop now2222222!\n");
+    adec_print("now enter the audio decoder stop now!\n");
     pthread_mutex_unlock(&patch_out_mutex);
 
-    pthread_join(paramout->tid, NULL);
-    adec_print("now enter the audio decoder stop now333333!\n");
+
 
     paramout->tid = -1;
     out_patch_initd = 0;
