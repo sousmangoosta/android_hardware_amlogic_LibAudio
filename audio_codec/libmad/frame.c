@@ -428,8 +428,8 @@ sync:
     }
 
     stream->next_frame = stream->this_frame + N;
-
-    if (!stream->sync) {
+    //insure next frame head is legal
+    if (/*!stream->sync*/1) {
         /* check that a valid frame header follows this frame */
 
         ptr = stream->next_frame;
