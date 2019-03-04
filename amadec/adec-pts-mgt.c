@@ -539,7 +539,11 @@ int adec_refresh_pts(aml_audio_dec_t *audec)
             channels = audec->channels;
         }
         // 170 ms  audio hal have  triggered the output hw.
+#ifdef USE_AOUT_IN_ADEC
+        latency = audec->aout_ops.latency(audec);
+#else
         latency = 0;//audec->aout_ops.latency(audec);
+#endif
         if (latency > 0  && ((audec->pcm_bytes_readed * 1000 / (samplerate * channels * 2)) >= wait)) {
             adec_print("unable to getsystime--\n\n [[[%ld,%d,%d,%d,%d]]]\n",
             (long)audec->pcm_bytes_readed

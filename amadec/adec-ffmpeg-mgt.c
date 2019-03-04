@@ -40,11 +40,11 @@ extern int read_buffer(unsigned char *buffer, int size);
 void *audio_decode_loop(void *args);
 void *audio_dtsdecode_loop(void *args);
 void *audio_getpackage_loop(void *args);
-static int set_sysfs_int(const char *path, int val);
 static void stop_decode_thread(aml_audio_dec_t *audec);
-
+#ifndef USE_AOUT_IN_ADEC
+static int set_sysfs_int(const char *path, int val);
 #define DTV_APTS_LOOKUP_PATH "/sys/class/tsync/apts_lookup"
-
+#endif
 #define AVCODEC_MAX_AUDIO_FRAME_SIZE 500*1024
 
 /*audio decoder list structure*/
@@ -54,6 +54,31 @@ typedef struct {
     char    name[64];
 } audio_lib_t;
 
+
+#ifdef USE_AOUT_IN_ADEC
+audio_lib_t audio_lib_list[] = {
+    {ACODEC_FMT_AAC, "libfaad_sys.so"},
+    {ACODEC_FMT_AAC_LATM, "libfaad_sys.so"},
+    {ACODEC_FMT_APE, "libape.so"},
+    {ACODEC_FMT_MPEG, "libmad_sys.so"},
+    {ACODEC_FMT_MPEG2, "libmad_sys.so"},
+    {ACODEC_FMT_MPEG1, "libmad_sys.so"},
+    {ACODEC_FMT_FLAC, "libflac.so"},
+    {ACODEC_FMT_COOK, "libcook.so"},
+    {ACODEC_FMT_RAAC, "libraac.so"},
+    {ACODEC_FMT_AMR, "libamr.so"},
+
+    {ACODEC_FMT_PCM_S16BE, "libpcm.so"},
+    {ACODEC_FMT_PCM_S16LE, "libpcm.so"},
+    {ACODEC_FMT_PCM_U8, "libpcm.so"},
+    {ACODEC_FMT_PCM_BLURAY, "libpcm.so"},
+    {ACODEC_FMT_WIFIDISPLAY, "libpcm.so"},
+    {ACODEC_FMT_ALAW, "libpcm.so"},
+    {ACODEC_FMT_MULAW, "libpcm.so"},
+    {ACODEC_FMT_ADPCM, "libadpcm.so"},
+    {ACODEC_FMT_DRA, "libdra.so"}
+} ;
+#else
 audio_lib_t audio_lib_list[] = {
     {ACODEC_FMT_AAC, "libfaad.so"},
     {ACODEC_FMT_AAC_LATM, "libfaad.so"},
@@ -76,8 +101,155 @@ audio_lib_t audio_lib_list[] = {
     {ACODEC_FMT_ADPCM, "libadpcm.so"},
     {ACODEC_FMT_DRA, "libdra.so"}
 } ;
+#endif
+
+#define     DDPshort            short
+#define     DDPerr              short
+#define     DDPushort           unsigned short
+#define     BYTESPERWRD         2
+#define     BITSPERWRD          (BYTESPERWRD*8)
+#define     SYNCWRD             ((DDPshort)0x0b77)
+#define     MAXFSCOD            3
+#define     MAXDDDATARATE       38
+#define     BS_BITOFFSET        40
+#define     PTR_HEAD_SIZE       7//20
 
 
+typedef struct {
+    DDPshort       *buf;
+    DDPshort        bitptr;
+    DDPshort        data;
+} DDP_BSTRM;
+
+const DDPushort msktab[] = { 0x0000, 0x8000, 0xc000, 0xe000, 0xf000, 0xf800,
+                             0xfc00, 0xfe00, 0xff00, 0xff80, 0xffc0, 0xffe0, 0xfff0, 0xfff8, 0xfffc,
+                             0xfffe, 0xffff
+                           };
+const DDPshort frmsizetab[MAXFSCOD][MAXDDDATARATE] = {
+    /* 48kHz */
+    {
+        64, 64, 80, 80, 96, 96, 112, 112,
+        128, 128, 160, 160, 192, 192, 224, 224,
+        256, 256, 320, 320, 384, 384, 448, 448,
+        512, 512, 640, 640, 768, 768, 896, 896,
+        1024, 1024, 1152, 1152, 1280, 1280
+    },
+    /* 44.1kHz */
+    {
+        69, 70, 87, 88, 104, 105, 121, 122,
+        139, 140, 174, 175, 208, 209, 243, 244,
+        278, 279, 348, 349, 417, 418, 487, 488,
+        557, 558, 696, 697, 835, 836, 975, 976,
+        1114, 1115, 1253, 1254, 1393, 1394
+    },
+    /* 32kHz */
+    {
+        96, 96, 120, 120, 144, 144, 168, 168,
+        192, 192, 240, 240, 288, 288, 336, 336,
+        384, 384, 480, 480, 576, 576, 672, 672,
+        768, 768, 960, 960, 1152, 1152, 1344, 1344,
+        1536, 1536, 1728, 1728, 1920, 1920
+    }
+};
+
+static DDPerr ddbs_init(DDPshort * buf, DDPshort bitptr, DDP_BSTRM *p_bstrm)
+{
+    p_bstrm->buf = buf;
+    p_bstrm->bitptr = bitptr;
+    p_bstrm->data = *buf;
+    return 0;
+}
+
+static DDPerr ddbs_unprj(DDP_BSTRM *p_bstrm, DDPshort *p_data,  DDPshort numbits)
+{
+    DDPushort data;
+    *p_data = (DDPshort)((p_bstrm->data << p_bstrm->bitptr) & msktab[numbits]);
+    p_bstrm->bitptr += numbits;
+    if (p_bstrm->bitptr >= BITSPERWRD) {
+        p_bstrm->buf++;
+        p_bstrm->data = *p_bstrm->buf;
+        p_bstrm->bitptr -= BITSPERWRD;
+        data = (DDPushort) p_bstrm->data;
+        *p_data |= ((data >> (numbits - p_bstrm->bitptr)) & msktab[numbits]);
+    }
+    *p_data = (DDPshort)((DDPushort)(*p_data) >> (BITSPERWRD - numbits));
+    return 0;
+}
+
+static int dd_get_framezise(void *buf, int *frame_size)
+{
+    DDP_BSTRM bstrm = {NULL, 0, 0};
+    DDP_BSTRM *p_bstrm = &bstrm;
+    short tmp = 0, fscod, frmsizecod;
+    ddbs_init((short*) buf, 0, p_bstrm);
+
+    ddbs_unprj(p_bstrm, &tmp, 16);
+    if (tmp != SYNCWRD) {
+        adec_print("Invalid synchronization word");
+        return 0;
+    }
+    ddbs_unprj(p_bstrm, &tmp, 16);
+    ddbs_unprj(p_bstrm, &fscod, 2);
+    if (fscod == MAXFSCOD) {
+        adec_print("Invalid sampling rate code");
+        return 0;
+    }
+
+    ddbs_unprj(p_bstrm, &frmsizecod, 6);
+    if (frmsizecod >= MAXDDDATARATE) {
+        adec_print("Invalid frame size code");
+        return 0;
+    }
+
+    *frame_size = 2 * frmsizetab[fscod][frmsizecod];
+
+    return 0;
+}
+
+static int ddp_get_framezise(void *buf, int *frame_size)
+{
+    DDP_BSTRM bstrm = {NULL, 0, 0};
+    DDP_BSTRM *p_bstrm = &bstrm;
+    short tmp = 0, strmtyp;
+    ddbs_init((short*) buf, 0, p_bstrm);
+    ddbs_unprj(p_bstrm, &tmp, 16);
+    if (tmp != SYNCWRD) {
+        adec_print("Invalid synchronization word");
+        return -1;
+    }
+
+    ddbs_unprj(p_bstrm, &strmtyp, 2);
+    ddbs_unprj(p_bstrm, &tmp, 3);
+    ddbs_unprj(p_bstrm, &tmp, 11);
+
+    *frame_size = 2 * (tmp + 1);
+    return 0;
+}
+
+static int dolby_get_framezise(void *buf,  int *frame_size, int is_eac3)
+{
+    uint8_t ptr8[PTR_HEAD_SIZE];
+
+    memcpy(ptr8, buf, PTR_HEAD_SIZE);
+    if ((ptr8[0] == 0x0b) && (ptr8[1] == 0x77)) {
+        int i;
+        uint8_t tmp;
+        for (i = 0; i < PTR_HEAD_SIZE; i += 2) {
+            tmp = ptr8[i];
+            ptr8[i] = ptr8[i + 1];
+            ptr8[i + 1] = tmp;
+        }
+    }
+
+    if (is_eac3) {
+        ddp_get_framezise(ptr8, frame_size);
+    } else {
+        dd_get_framezise(ptr8, frame_size);
+    }
+    return 0;
+}
+
+#ifndef USE_AOUT_IN_ADEC
 static unsigned long adec_apts_lookup(unsigned long offset)
 {
     unsigned int pts = 0;
@@ -101,7 +273,7 @@ static unsigned long adec_apts_lookup(unsigned long offset)
     }
     return (unsigned long)pts;
 }
-
+#endif
 
 int find_audio_lib(aml_audio_dec_t *audec)
 {
@@ -272,6 +444,173 @@ int armdec_stream_read_raw(dsp_operations_t *dsp_ops, char *buffer, int size)
     aml_audio_dec_t *audec = (aml_audio_dec_t *)dsp_ops->audec;
     return read_pcm_buffer(buffer, audec->g_bst_raw, size);
 }
+
+#ifdef USE_AOUT_IN_ADEC
+unsigned long  armdec_get_pts(dsp_operations_t *dsp_ops)
+{
+    unsigned long val = 0, offset;
+    unsigned long pts;
+    int data_width, channels, samplerate;
+    unsigned long long frame_nums ;
+    unsigned long delay_pts;
+    char value[PROPERTY_VALUE_MAX];
+    aml_audio_dec_t *audec = (aml_audio_dec_t *)dsp_ops->audec;
+    audio_out_operations_t * aout_ops = &audec->aout_ops;
+    float  track_speed = 1.0f;
+    if (aout_ops != NULL) {
+        if (aout_ops->track_rate != 8.8f) {
+            track_speed = aout_ops->track_rate;
+        }
+    }
+    switch (audec->g_bst->data_width) {
+    case AV_SAMPLE_FMT_U8:
+        data_width = 8;
+        break;
+    case AV_SAMPLE_FMT_S16:
+        data_width = 16;
+        break;
+    case AV_SAMPLE_FMT_S32:
+        data_width = 32;
+        break;
+    default:
+        data_width = 16;
+    }
+
+    int pts_delta = 0;
+    if (property_get("media.libplayer.pts_delta", value, NULL) > 0) {
+        pts_delta = atoi(value);
+    }
+
+    channels = audec->g_bst->channels;
+    samplerate = audec->g_bst->samplerate;
+    if (!channels || !samplerate) {
+        adec_print("warning ::::zero  channels %d, sample rate %d \n", channels, samplerate);
+        if (!samplerate) {
+            samplerate = 48000;
+        }
+        if (!channels) {
+            channels = 2;
+        }
+    }
+    offset = audec->decode_offset;
+    if (dsp_ops->dsp_file_fd >= 0) {
+        if (audec->g_bst->format != ACODEC_FMT_COOK && audec->g_bst->format != ACODEC_FMT_RAAC) {
+            //when first  look up apts,set offset 0
+            if (!audec->first_apts_lookup_over) {
+                offset = 0;
+            }
+            ioctl(dsp_ops->dsp_file_fd, AMSTREAM_IOC_APTS_LOOKUP, &offset);
+        }
+        //for cook/raac should wait to get first apts from decoder
+        else {
+            int wait_count = 10;
+            while (offset == 0xffffffff && wait_count-- > 0) {
+                amthreadpool_thread_usleep(10000);
+            }
+            offset = audec->decode_offset;
+            if (offset == 0xffffffff) {
+                adec_print(" cook/raac get apts 100 ms timeout \n");
+            }
+
+        }
+    } else {
+        //adec_print("====abuf have not open!\n");
+    }
+
+    if (am_getconfig_bool("media.arm.audio.apts_add")) {
+        offset = 0;
+    }
+    pts = offset;
+    if (!audec->first_apts_lookup_over) {
+        audec->last_valid_pts = pts;
+        audec->first_apts_lookup_over = 1;
+        return pts;
+    }
+
+    if (audec->use_get_out_posion && audec->aout_ops.get_out_position) {
+        /*add by zz*/
+        int64_t postion, time_us;
+        struct timespec timenow;
+        int ret;
+        ret = audec->aout_ops.get_out_position(audec, &postion, &time_us);
+        if (!ret) {
+            int decodered_samples;
+            int cache_samples;
+            int delay_us, t_us;
+            decodered_samples = audec->decode_pcm_offset * 8 / (channels * data_width);
+            cache_samples = decodered_samples - postion;
+            if (cache_samples < 0) {
+                cache_samples = 0;
+            }
+            delay_us = 1000 * (cache_samples * 1000 / samplerate);
+            clock_gettime(CLOCK_MONOTONIC, &timenow);
+            t_us = timenow.tv_sec * 1000000LL + timenow.tv_nsec / 1000 - time_us;
+            if (t_us > 0) {
+                delay_us -= t_us;
+            }
+            if (delay_us < 0) {
+                delay_us = 0;
+            }
+            delay_pts = delay_us * 90 / 1000;
+            if (pts == 0) {
+                int outsamples = postion - audec->last_out_postion ;
+                /*delay_us out samples after last refresh pts*/
+                delay_us = 1000 * (outsamples * 1000 / samplerate);
+                delay_us = delay_us * track_speed;
+                if (delay_us < 0) {
+                    delay_us = 0;
+                }
+                pts = audec->last_valid_pts + delay_us * 90 / 1000;
+                audec->last_valid_pts = pts;
+                pts += 90000 / 1000 * pts_delta;
+                audec->last_out_postion = postion;
+                audec->last_get_postion_time_us = time_us;
+                return pts;
+            }
+            audec->last_out_postion = postion;
+            audec->last_get_postion_time_us = time_us;
+        } else {
+            delay_pts = 0;/*audio track not ready? used buf_level add for pts*/
+        }
+    } else {
+        delay_pts = 0;
+    }
+    if (delay_pts == 0) {
+        if (pts == 0) {
+            if (audec->last_valid_pts) {
+                pts = audec->last_valid_pts;
+            }
+            frame_nums = (audec->out_len_after_last_valid_pts * 8 / (data_width * channels));
+            pts += (frame_nums * 90000 / samplerate);
+            pts += 90000 / 1000 * pts_delta;
+            //if (pts < 0)
+            //   pts = 0;
+            //adec_print("decode_offset:%d out_pcm:%d   pts:%d \n",decode_offset,out_len_after_last_valid_pts,pts);
+            return pts;
+        }
+        {
+            int len = audec->g_bst->buf_level + audec->pcm_cache_size;
+            frame_nums = (len * 8 / (data_width * channels));
+            delay_pts = (frame_nums * 90000 / samplerate);
+        }
+    }
+    delay_pts = delay_pts * track_speed;
+    if (pts > delay_pts) {
+        pts -= delay_pts;
+    } else {
+        pts = 0;
+    }
+    val = pts;
+    audec->last_valid_pts = pts;
+    audec->out_len_after_last_valid_pts = 0;
+    //adec_print("====get pts:%ld offset:%ld frame_num:%lld delay:%ld \n",val,decode_offset,frame_nums,delay_pts);
+
+    val += 90000 / 1000 * pts_delta; // for a/v sync test,some times audio ahead video +28ms.so add +15ms to apts to .....
+    //if (val < 0)
+    //   val = 0;
+    return val;
+}
+#else
 unsigned long  armdec_get_pts(dsp_operations_t *dsp_ops)
 {
     unsigned long val = 0, offset;
@@ -375,7 +714,7 @@ unsigned long  armdec_get_pts(dsp_operations_t *dsp_ops)
     //   val = 0;
     return val;
 }
-
+#endif
 unsigned long  armdec_get_pcrscr(dsp_operations_t *dsp_ops)
 {
     unsigned int val;
@@ -399,10 +738,12 @@ int armdec_set_skip_bytes(dsp_operations_t* dsp_ops __unused, unsigned int bytes
 {
     return  0;
 }
+#ifndef USE_AOUT_IN_ADEC
 static int set_sysfs_int(const char *path, int val)
 {
     return amsysfs_set_sysfs_int(path, val);
 }
+#endif
 int get_decoder_status(void *p, struct adec_status *adec)
 {
     aml_audio_dec_t *audec = (aml_audio_dec_t *)p;
@@ -599,11 +940,12 @@ static int audio_codec_init(aml_audio_dec_t *audec)
     audec->OmxFirstFrameDecoded = 0;
     audec->use_get_out_posion = am_getconfig_bool_def("media.audio.pts.use_get_posion", 0);
     package_list_init(audec);
+#ifndef USE_AOUT_IN_ADEC
     while (0 != set_sysfs_int(DECODE_ERR_PATH, DECODE_NONE_ERR)) {
         adec_print("[%s %d]set codec fatal failed ! \n", __FUNCTION__, __LINE__);
         amthreadpool_thread_usleep(100000);
     }
-
+#endif
     adec_print("[%s %d]param:data_width:%d samplerate:%d channel:%d \n",
                __FUNCTION__, __LINE__, audec->data_width, audec->samplerate, audec->channels);
 
@@ -791,6 +1133,7 @@ static int get_first_apts_flag(dsp_operations_t *dsp_ops)
 static int start_adec(aml_audio_dec_t *audec)
 {
     #ifdef USE_AOUT_IN_ADEC
+    int ret;
     audio_out_operations_t *aout_ops = &audec->aout_ops;
     #endif
     dsp_operations_t *dsp_ops = &audec->adsp_ops;
@@ -842,10 +1185,21 @@ static int start_adec(aml_audio_dec_t *audec)
         }
 
         /*start  the  the pts scr,...*/
+#ifdef USE_AOUT_IN_ADEC
+        ret = adec_pts_start(audec);
+#endif
         if (audec->auto_mute) {
+#ifdef USE_AOUT_IN_ADEC
+            avsync_en(0);
+            adec_pts_pause();
+#endif
             while ((!audec->need_stop) && track_switch_pts(audec)) {
                 amthreadpool_thread_usleep(1000);
             }
+#ifdef USE_AOUT_IN_ADEC
+            avsync_en(1);
+            adec_pts_resume();
+#endif
             audec->auto_mute = 0;
         }
         if (audec->tsync_mode == TSYNC_MODE_PCRMASTER) {
@@ -1094,6 +1448,49 @@ static int get_frame_size(aml_audio_dec_t *audec)
             return frame_szie;
         }
     }
+
+    if (audec->format == ACODEC_FMT_AC3 || audec->format == ACODEC_FMT_EAC3) {
+        if (start_code->status == 0) { //have not get the sync data
+            ret = read_buffer((unsigned char *)start_code->buff, PTR_HEAD_SIZE);
+            if (ret <= 0) {
+                return 0;
+            }
+            start_code->size = PTR_HEAD_SIZE;
+            start_code->status = 1;
+        }
+
+        if (start_code->status == 1) { //start find sync word
+            if (start_code->size < PTR_HEAD_SIZE) {
+                ret = read_buffer((unsigned char *)(start_code->buff + start_code->size), PTR_HEAD_SIZE - start_code->size);
+                if (ret <= 0) {
+                    return 0;
+                }
+                start_code->size = PTR_HEAD_SIZE;
+            }
+            if (start_code->size == PTR_HEAD_SIZE) {
+                if (((start_code->buff[0] == 0x0b) && (start_code->buff[1] == 0x77)) || ((start_code->buff[2] == 0x77) && (start_code->buff[3] == 0x0b))) {
+                    start_code->status = 2; //sync word found ,start find frame size
+                } else {
+                    int i = 0;
+                    start_code->size = PTR_HEAD_SIZE -1;
+                    for (i = 0; i < PTR_HEAD_SIZE -1; i++) {
+                        start_code->buff[i] = start_code->buff[i+1];
+                    }
+                    return 0;
+                }
+            }
+
+        }
+
+        if (start_code->status == 2) {
+            int is_eac3 = (audec->format == ACODEC_FMT_EAC3) ? 1 : 0;
+            start_code->size = PTR_HEAD_SIZE;
+            dolby_get_framezise(start_code->buff, &frame_szie, is_eac3);
+            //adec_print("[%s]frame_szie %d", __FUNCTION__, frame_szie);
+            return frame_szie;
+        }
+    }
+
     return -1;
 }
 // check if audio format info changed,if changed, apply new parameters to audio track
@@ -1479,11 +1876,15 @@ void *adec_armdec_loop(void *args)
 
 MSG_LOOP:
     do {
-        #ifdef USE_AOUT_IN_ADEC
+#ifdef USE_AOUT_IN_ADEC
         adec_reset_track(audec);
-        #endif
+#endif
         adec_flag_check(audec);
-
+#ifdef USE_AOUT_IN_ADEC
+        if (audec->state == ACTIVE) {
+            adec_refresh_pts(audec);
+        }
+#endif
         msg = adec_get_message(audec);
         if (!msg) {
             amthreadpool_thread_usleep(10 * 1000); //if not wait,need changed to amthread usleep

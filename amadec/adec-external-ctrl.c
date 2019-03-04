@@ -647,6 +647,64 @@ int audio_decpara_get(void *handle, int *pfs, int *pch , int *lfepresent)
  * \param handle pointer to player private data
  * \return 1 = output is mute, 0 = output not mute
  */
+
+#ifdef USE_AOUT_IN_ADEC
+/**
+ * \brief get audio dsp decoded frame number
+ * \param handle pointer to player private data
+ * \return n = audiodec frame number, -1 = error
+ */
+int audio_get_decoded_nb_frames(void *handle)
+{
+    aml_audio_dec_t *audec = (aml_audio_dec_t *)handle;
+
+    if (!handle) {
+        adec_print("audio handle is NULL !\n");
+        return -1;
+    }
+
+    audec->decoded_nb_frames = audiodsp_get_decoded_nb_frames(&audec->adsp_ops);
+    //adec_print("audio_get_decoded_nb_frames:  %d!", audec->decoded_nb_frames);
+    if (audec->decoded_nb_frames >= 0) {
+        return audec->decoded_nb_frames;
+    } else {
+        return -2;
+    }
+}
+
+int audio_get_pcm_level(void* handle)
+{
+    aml_audio_dec_t* audec = (aml_audio_dec_t*)handle;
+    if (!handle) {
+        adec_print("audio handle is NULL !\n");
+        return -1;
+    }
+
+    return audiodsp_get_pcm_level(&audec->adsp_ops);
+
+}
+
+int audio_set_skip_bytes(void* handle, unsigned int bytes)
+{
+    aml_audio_dec_t* audec = (aml_audio_dec_t*) handle;
+    if (!handle) {
+        adec_print("audio handle is NULL !!\n");
+        return -1;
+    }
+    return audiodsp_set_skip_bytes(&audec->adsp_ops, bytes);
+}
+
+int audio_get_pts(void* handle)
+{
+    aml_audio_dec_t* audec = (aml_audio_dec_t*)handle;
+    if (!handle) {
+        adec_print("audio handle is NULL !\n");
+        return -1;
+    }
+    return audiodsp_get_pts(&audec->adsp_ops);
+}
+#endif
+
 int audio_output_muted(void *handle)
 {
     aml_audio_dec_t *audec = (aml_audio_dec_t *)handle;
