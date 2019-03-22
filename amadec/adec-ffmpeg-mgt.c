@@ -1380,6 +1380,8 @@ void *audio_getpackage_loop(void *args)
             nNextFrameSize = adec_ops->nInBufSize;
             if (audec->format == ACODEC_FMT_AC3 || audec->format == ACODEC_FMT_EAC3 || audec->format == ACODEC_FMT_DTS) {
                 nNextFrameSize = 512;
+            } else if (audec->format == ACODEC_FMT_MPEG) {
+                nNextFrameSize = 1024;
             }
         } else if (nNextFrameSize == 0) {
             amthreadpool_thread_usleep(1000);
