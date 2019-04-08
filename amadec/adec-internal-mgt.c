@@ -633,7 +633,10 @@ static int set_audio_decoder(aml_audio_dec_t *audec)
         goto exit;
     }
 
-
+#ifdef USE_AOUT_IN_ADEC
+        audio_decoder = AUDIO_ARM_DECODER;
+        goto exit;
+#endif
     ret = property_get("media.arm.audio.decoder", value, NULL);
     adec_print("media.amplayer.audiocodec = %s, t->type = %s\n", value, t->type);
     if (ret > 0 && match_types(t->type, value)) {
