@@ -151,17 +151,26 @@ static void *dtv_patch_out_loop(void *args)
                 adec_print("the audec is NULL\n");
                 // pthread_mutex_unlock(&patch_out_mutex);
                 usleep(10000);
+                if (patchparm->state == DTV_PATCH_STATE_STOPED) {
+                    goto exit;
+                }
                 continue;
             }
             if (audec->adsp_ops.dsp_read == NULL) {
                 adec_print("the audec dsp_read is NULL\n");
                 // pthread_mutex_unlock(&patch_out_mutex);
                 usleep(10000);
+                if (patchparm->state == DTV_PATCH_STATE_STOPED) {
+                    goto exit;
+                }
                 continue;
             }
 
             if (audec->g_bst->buf_level < 1024) {
-                usleep(10000);
+                usleep(1000);
+                if (patchparm->state == DTV_PATCH_STATE_STOPED) {
+                    goto exit;
+                }
                 continue;
             }
 
@@ -169,28 +178,35 @@ static void *dtv_patch_out_loop(void *args)
                 adec_print("the audec get_cur_pts is NULL\n");
                 // pthread_mutex_unlock(&patch_out_mutex);
                 usleep(10000);
+                if (patchparm->state == DTV_PATCH_STATE_STOPED) {
+                    goto exit;
+                }
 
                 continue;
             }
 
             if (patchparm->space_cb(patchparm->pargs) < 4096) {
                 if (patchparm->state == DTV_PATCH_STATE_STOPED) {
-                goto exit;
-            }
-                usleep(10000);
+                    goto exit;
+                }
+                usleep(1000);
+                if (patchparm->state == DTV_PATCH_STATE_STOPED) {
+                    goto exit;
+                }
+
                 continue;
             }
             // pts = audec->adsp_ops.get_cur_pts(&audec->adsp_ops);
             if (audec->g_bst->buf_level < (OUTPUT_BUFFER_SIZE - len) &&
                 readcount < 25 &&
                 (audec->format == ACODEC_FMT_AC3 ||
-                audec->format == ACODEC_FMT_EAC3 ||
-                audec->format == ACODEC_FMT_DTS) ) {
+                 audec->format == ACODEC_FMT_EAC3 ||
+                 audec->format == ACODEC_FMT_DTS)) {
                 len2 = 0;
                 readcount++;
             } else {
                 len2 = audec->adsp_ops.dsp_read(&audec->adsp_ops, (buffer + len),
-                                            (OUTPUT_BUFFER_SIZE - len));
+                                                (OUTPUT_BUFFER_SIZE - len));
                 readcount = 0;
             }
             //adec_print("len2 %d", len2);
@@ -199,10 +215,10 @@ static void *dtv_patch_out_loop(void *args)
         }
 
         if (len == 0) {
+            usleep(1000);
             if (patchparm->state == DTV_PATCH_STATE_STOPED) {
                 goto exit;
             }
-            usleep(10000);
             continue;
         }
         audec->pcm_bytes_readed += len;
@@ -212,15 +228,10 @@ static void *dtv_patch_out_loop(void *args)
             samplerate = audec->g_bst->samplerate;
             len2 = patchparm->pcmout_cb((unsigned char *)(buffer + offset), len, samplerate,
                                         channels, patchparm->pargs);
-            //  if (len2 == 0)
-            // adec_print(
-            //     "========now send the data from the buffer len %d  send %d  ",
-            //     len, len2);
             if (len2 == 0) {
                 if (patchparm->state == DTV_PATCH_STATE_STOPED) {
                     goto exit;
                 }
-                usleep(10000);
             }
         }
 
@@ -321,7 +332,7 @@ int dtv_patch_input_stop(unsigned int handle)
         pthread_mutex_unlock(&patch_out_mutex);
         return -1;
     }
-    
+
     adec_print("now enter the audio decoder stop now!\n");
 
     paramout->state = DTV_PATCH_STATE_STOPED;
