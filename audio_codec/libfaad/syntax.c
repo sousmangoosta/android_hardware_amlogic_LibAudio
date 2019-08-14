@@ -585,7 +585,7 @@ static uint8_t single_lfe_channel_element(NeAACDecStruct *hDecoder, bitfile *ld,
         uint8_t channel, uint8_t *tag)
 {
     uint8_t retval = 0;
-    element sce;// = {0};
+    element sce = {0};
     ic_stream *ics = &(sce.ics1);
     ALIGN int16_t spec_data[1024] = {0};
 
