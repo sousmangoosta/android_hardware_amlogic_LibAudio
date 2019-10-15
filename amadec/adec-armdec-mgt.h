@@ -29,12 +29,13 @@
 
 #define DEFAULT_PCM_BUFFER_SIZE 192000*2//default out buffer size
 
-//#define AUDIO_EXTRA_DATA_SIZE   (4096)
+#define AUDIO_EXTRA_DATA_SIZE   (4096)
 typedef struct _audio_info {
     int bitrate;
     int samplerate;
     int channels;
     int file_profile;
+    int error_num;
 } AudioInfo;
 
 /* audio decoder operation*/
@@ -56,7 +57,7 @@ struct audio_decoder_operations {
     int samplerate;
     int bps;
     int extradata_size;      ///< extra data size
-    char extradata[4096];
+    char extradata[AUDIO_EXTRA_DATA_SIZE];
     int NchOriginal;
     int lfepresent;
 };
@@ -70,5 +71,4 @@ enum AVSampleFormat {
     AV_SAMPLE_FMT_DBL,         ///< double
     AV_SAMPLE_FMT_NB           ///< Number of sample formats. DO NOT USE if linking dynamically
 };
-
 #endif

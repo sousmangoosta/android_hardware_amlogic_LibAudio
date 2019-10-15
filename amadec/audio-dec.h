@@ -126,6 +126,7 @@ struct aml_audio_dec {
     int auto_mute;
     int muted;
     int decoded_nb_frames;
+    int error_nb_frames;
     int avsync_threshold;
     float volume; //left or main volume
     float volume_ext; //right
@@ -168,6 +169,8 @@ struct aml_audio_dec {
 	int64_t decode_pcm_offset;
 	int use_get_out_posion;
     int nDecodeErrCount;
+    int audio_decode_error_count;
+    int error_num;
     int fd_uio;
     uint64_t last_valid_pts;
     int out_len_after_last_valid_pts;
@@ -240,6 +243,7 @@ typedef struct {
     int droppcm_flag;               // drop pcm flag, if switch audio (1)
     int automute;
     unsigned int has_video;
+	int error_num;
     int associate_dec_supported;//support associate or not
     int mixing_level;//def=50, mixing level between main and associate, [0,100]
 } arm_audio_info;
