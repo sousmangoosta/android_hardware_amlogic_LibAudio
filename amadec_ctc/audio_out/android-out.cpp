@@ -671,8 +671,12 @@ extern "C" int android_init_raw(struct aml_audio_dec* audec)
     if (audec->format == ACODEC_FMT_AC3) {
         framecount = 1536;
     } else if (audec->format == ACODEC_FMT_EAC3) {
-        framecount = 6144;
-        SampleRate = SampleRate * 4;
+        if (audec->raw_enable == 1) {
+            framecount = 1536;
+        } else if (audec->raw_enable == 2) {
+            framecount = 6144;
+            SampleRate = SampleRate * 4;
+        }
     }
     status = track->set(AUDIO_STREAM_MUSIC,
                         SampleRate,
