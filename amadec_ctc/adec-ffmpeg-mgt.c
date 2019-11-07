@@ -1414,7 +1414,7 @@ void *audio_decode_loop(void *args)
                     int wlen = 0;
                     while (outlen && !audec->exit_decode_thread) {
                         if (g_bst->buf_length - g_bst->buf_level < outlen) {
-                            amthreadpool_thread_usleep(100000);
+                            amthreadpool_thread_usleep(10000);
                             continue;
                         }
                         wlen = write_pcm_buffer(outbuf, g_bst, outlen);
