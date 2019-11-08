@@ -1250,6 +1250,8 @@ static void start_decode_thread(aml_audio_dec_t *audec)
 static void stop_decode_thread(aml_audio_dec_t *audec)
 {
     audec->exit_decode_thread = 1;
+    amthreadpool_thread_cancel(audec->sn_threadid);
+    amthreadpool_thread_cancel(audec->sn_getpackage_threadid);
     int ret = amthreadpool_pthread_join(audec->sn_threadid, NULL);
     adec_print("[%s]decode thread exit success\n", __FUNCTION__);
     ret = amthreadpool_pthread_join(audec->sn_getpackage_threadid, NULL);
