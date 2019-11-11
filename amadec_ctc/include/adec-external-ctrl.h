@@ -44,18 +44,20 @@ extern "C"
     int audio_get_soundtrack(void *, int*);
     int get_audio_decoder(void);
     int get_decoder_status(void *p, struct adec_status *adec);
+    int get_decoder_info(void *p);
     int audio_channel_lrmix_flag_set(void *, int enable);
     int audio_decpara_get(void *handle, int *pfs, int *pch,int *lfepresent);
     int audio_get_format_supported(int format);
-		int audio_get_pts(void* handle);
-		int audio_set_skip_bytes(void* handle, unsigned int bytes);
-		int audio_get_pcm_level(void* handle);
-		int audio_get_decoded_pcm_delay(void *handle);
-		int audio_decode_basic_init(void);
-		int audio_decoder_set_trackrate(void* handle, void *rate);
-		int audio_decoder_get_enable_status(void* handle);
+    int audio_get_pts(void* handle);
+    int audio_set_skip_bytes(void* handle, unsigned int bytes);
+    int audio_get_pcm_level(void* handle);
+    int audio_get_decoded_pcm_delay(void *handle);
+    int audio_decode_basic_init(void);
+    int audio_decoder_set_trackrate(void* handle, void *rate);
+    int audio_decoder_get_enable_status(void* handle);
     int audio_set_associate_enable(void *handle, unsigned int enable);
     int audio_send_associate_data(void *handle, uint8_t *buf, size_t size);
+    int audio_get_basic_info(void *handle, arm_audio_info *a_ainfo);
 #ifdef  __cplusplus
 }
 #endif

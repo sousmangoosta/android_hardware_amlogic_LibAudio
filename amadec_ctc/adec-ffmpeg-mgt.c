@@ -17,6 +17,7 @@
 #include "amconfigutils.h"
 
 #include <audio-dec.h>
+#include <adec-external-ctrl.h>
 #include <amthreadpool.h>
 #include <cutils/properties.h>
 
@@ -416,6 +417,29 @@ int get_decoder_status(void *p, struct adec_status *adec)
         return -1;
     }
 }
+
+int get_decoder_info(void *p)
+{
+    aml_audio_dec_t *audec = (aml_audio_dec_t *)p;
+    int ret = -1;
+    if (audec && audec->adec_ops) {
+        AudioInfo   g_AudioInfo = {0};
+        audio_decoder_operations_t *adec_ops  = audec->adec_ops;
+        if (audec->format == ACODEC_FMT_AAC || audec->format == ACODEC_FMT_MPEG ||
+                audec->format == ACODEC_FMT_MPEG1 || audec->format == ACODEC_FMT_MPEG2 ||
+                audec->format == ACODEC_FMT_AAC_LATM) {
+            adec_ops->getinfo(audec->adec_ops, &g_AudioInfo);
+            audec->error_num = g_AudioInfo.error_num; //need count
+            ret = 0;
+        }else if (audec->format == ACODEC_FMT_AC3 || audec->format == ACODEC_FMT_EAC3){
+            audec->error_num = audec->error_nb_frames; //need count
+            ret = 0;
+        }
+        //adec_print("get_decoder_info: type :%d,error_num:%d\n",audec->format,audec->error_num);
+    }
+    return ret;
+}
+
 
 /**
  * \brief register audio decoder
@@ -1086,7 +1110,7 @@ static int get_frame_size(aml_audio_dec_t *audec)
 static void check_audio_info_changed(aml_audio_dec_t *audec)
 {
     buffer_stream_t *g_bst = audec->g_bst;
-    AudioInfo   g_AudioInfo = {0, 0, 0, 0};
+    AudioInfo   g_AudioInfo = {0};
     int BufLevelAllowDoFmtChg = 0;
     audio_decoder_operations_t *adec_ops  = audec->adec_ops;
     adec_ops->getinfo(audec->adec_ops, &g_AudioInfo);

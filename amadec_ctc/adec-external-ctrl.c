@@ -20,6 +20,7 @@
 
 #include <audio-dec.h>
 #include <amthreadpool.h>
+#include <adec-external-ctrl.h>
 
 int audio_decode_basic_init(void)
 {
@@ -805,6 +806,34 @@ int audio_get_decoded_pcm_delay(void *handle)
         return 0;
     }
 }
+
+int audio_get_basic_info(void *handle, arm_audio_info *a_ainfo)
+{
+    aml_audio_dec_t *audec = (aml_audio_dec_t *)handle;
+    if (!audec) {
+       adec_print("audec null\n");
+       return -1;
+    }
+
+    if (audec->channels) {
+        a_ainfo->channels = audec->channels;
+    }
+
+    if (audec->samplerate) {
+        a_ainfo->sample_rate = audec->samplerate;
+    }
+
+    if (audec->channels && audec->samplerate) {
+
+        get_decoder_info(audec);
+        a_ainfo->error_num = audec->error_num;
+    }
+
+    adec_print("--audio: channels=%d,samplate=%d,error_num=%d\n",a_ainfo->channels, a_ainfo->sample_rate,a_ainfo->error_num);
+    return 0;
+}
+
+
 /**
  * \brief check if the audio format supported by audio decoder
  * \param handle pointer to player private data
