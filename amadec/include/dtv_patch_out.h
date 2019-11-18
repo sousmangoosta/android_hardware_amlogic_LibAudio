@@ -25,9 +25,11 @@ typedef int (*out_raw_wirte)(unsigned char *raw_data, int size,
                              void *args);
 
 typedef int (*out_get_wirte_space)(void *args);
+typedef int (*out_audio_info)(void *args,unsigned char ori_channum,unsigned char lfepresent);
 
 int dtv_patch_input_open(unsigned int *handle, out_pcm_write pcmcb,
-                         out_get_wirte_space spacecb, void *args);
+                         out_get_wirte_space spacecb,
+                         out_audio_info info_cb,void *args);
 int dtv_patch_input_start(unsigned int handle, int aformat, int has_video);
 int dtv_patch_input_stop(unsigned int handle);
 int dtv_patch_input_pause(unsigned int handle);

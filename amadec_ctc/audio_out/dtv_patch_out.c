@@ -1,23 +1,13 @@
-/*
- * Copyright (C) 2018 Amlogic Corporation.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- *  DESCRIPTION:
- *      brief  Functions of Auduo output control for Linux Platform.
+/**
+ * \file patch-out.c
+ * \brief  Functions of Auduo output control for Linux Platform
+ * \version 1.0.0
+ * \date 2011-03-08
+ */
+/* Copyright (C) 2007-2018, Amlogic Inc.
+ * All right reserved
  *
  */
-
 #define LOG_TAG "amadec"
 #include <fcntl.h>
 #include <linux/soundcard.h>
@@ -35,6 +25,8 @@
 #include <amthreadpool.h>
 #include <dtv_patch_out.h>
 
+#define OUTPUT_BUFFER_SIZE (8 * 1024)
+
 #define AUD_ASSO_PROP "media.audio.enable_asso"
 #define AUD_ASSO_MIX_PROP "media.audio.mix_asso"
 #define VID_DISABLED_PROP "media.dvb.video.disabled"
@@ -44,7 +36,6 @@ typedef struct _dtv_patch_out {
     aml_audio_dec_t *audec;
     out_pcm_write pcmout_cb;
     out_get_wirte_space space_cb;
-    out_audio_info   info_cb;
     int device_opened;
     int state;
     pthread_t tid;
@@ -127,7 +118,6 @@ static void *dtv_patch_out_loop(void *args)
     int len = 0;
     int len2 = 0;
     int offset = 0;
-    int readcount = 0;
     //unsigned space_size = 0;
     //unsigned long pts;
     char *buffer =
@@ -139,8 +129,11 @@ static void *dtv_patch_out_loop(void *args)
     while (!(patchparm->state == DTV_PATCH_STATE_STOPED)) {
         // pthread_mutex_lock(&patch_out_mutex);
         {
-
-            if (patchparm->state == DTV_PATCH_STATE_PAUSE) {
+            if (patchparm->state == DTV_PATCH_STATE_STOPED) {
+                // pthread_mutex_unlock(&patch_out_mutex);
+                goto exit;
+            }
+            while (patchparm->state == DTV_PATCH_STATE_PAUSE) {
                 // pthread_mutex_unlock(&patch_out_mutex);
                 usleep(10000);
                 continue;
@@ -152,26 +145,17 @@ static void *dtv_patch_out_loop(void *args)
                 adec_print("the audec is NULL\n");
                 // pthread_mutex_unlock(&patch_out_mutex);
                 usleep(10000);
-                if (patchparm->state == DTV_PATCH_STATE_STOPED) {
-                    goto exit;
-                }
                 continue;
             }
             if (audec->adsp_ops.dsp_read == NULL) {
                 adec_print("the audec dsp_read is NULL\n");
                 // pthread_mutex_unlock(&patch_out_mutex);
                 usleep(10000);
-                if (patchparm->state == DTV_PATCH_STATE_STOPED) {
-                    goto exit;
-                }
                 continue;
             }
 
             if (audec->g_bst->buf_level < 1024) {
-                usleep(1000);
-                if (patchparm->state == DTV_PATCH_STATE_STOPED) {
-                    goto exit;
-                }
+                usleep(10000);
                 continue;
             }
 
@@ -179,63 +163,39 @@ static void *dtv_patch_out_loop(void *args)
                 adec_print("the audec get_cur_pts is NULL\n");
                 // pthread_mutex_unlock(&patch_out_mutex);
                 usleep(10000);
-                if (patchparm->state == DTV_PATCH_STATE_STOPED) {
-                    goto exit;
-                }
 
                 continue;
             }
 
             if (patchparm->space_cb(patchparm->pargs) < 4096) {
-                if (patchparm->state == DTV_PATCH_STATE_STOPED) {
-                    goto exit;
-                }
-                usleep(1000);
-                if (patchparm->state == DTV_PATCH_STATE_STOPED) {
-                    goto exit;
-                }
-
+                usleep(10000);
                 continue;
             }
             // pts = audec->adsp_ops.get_cur_pts(&audec->adsp_ops);
-            if (audec->g_bst->buf_level < (OUTPUT_BUFFER_SIZE - len) &&
-                readcount < 25 &&
-                (audec->format == ACODEC_FMT_AC3 ||
-                 audec->format == ACODEC_FMT_EAC3 ||
-                 audec->format == ACODEC_FMT_DTS)) {
-                len2 = 0;
-                readcount++;
-            } else {
-                len2 = audec->adsp_ops.dsp_read(&audec->adsp_ops, (buffer + len),
-                                                (OUTPUT_BUFFER_SIZE - len));
-                readcount = 0;
-            }
+            len2 = audec->adsp_ops.dsp_read(&audec->adsp_ops, (buffer + len),
+                                            (OUTPUT_BUFFER_SIZE - len));
             //adec_print("len2 %d", len2);
             len = len + len2;
             offset = 0;
         }
 
         if (len == 0) {
-            usleep(1000);
-            if (patchparm->state == DTV_PATCH_STATE_STOPED) {
-                goto exit;
-            }
+            usleep(10000);
             continue;
         }
         audec->pcm_bytes_readed += len;
         {
-           if (audec->format == ACODEC_FMT_DRA) {
-                patchparm->info_cb(patchparm->pargs,audec->adec_ops->NchOriginal,
-                 audec->adec_ops->lfepresent);
-           }
+
             channels = audec->g_bst->channels;
             samplerate = audec->g_bst->samplerate;
             len2 = patchparm->pcmout_cb((unsigned char *)(buffer + offset), len, samplerate,
                                         channels, patchparm->pargs);
+            //  if (len2 == 0)
+            // adec_print(
+            //     "========now send the data from the buffer len %d  send %d  ",
+            //     len, len2);
             if (len2 == 0) {
-                if (patchparm->state == DTV_PATCH_STATE_STOPED) {
-                    goto exit;
-                }
+                usleep(10000);
             }
         }
 
@@ -255,7 +215,7 @@ exit:
 }
 
 int dtv_patch_input_open(unsigned int *handle, out_pcm_write pcmcb,
-                         out_get_wirte_space spacecb, out_audio_info info_cb,void *args)
+                         out_get_wirte_space spacecb, void *args)
 {
     //int ret;
 
@@ -268,7 +228,6 @@ int dtv_patch_input_open(unsigned int *handle, out_pcm_write pcmcb,
     pthread_mutex_lock(&patch_out_mutex);
     param->pcmout_cb = pcmcb;
     param->space_cb = spacecb;
-    param->info_cb = info_cb;
     param->pargs = args;
     param->device_opened = 1;
     amthreadpool_system_init();
@@ -290,9 +249,7 @@ int dtv_patch_input_start(unsigned int handle, int aformat, int has_video)
         return -1;
     }
 
-    pthread_mutex_lock(&patch_out_mutex);
     if (out_patch_initd == 1) {
-        pthread_mutex_unlock(&patch_out_mutex);
         return -1;
     }
 
@@ -300,11 +257,11 @@ int dtv_patch_input_start(unsigned int handle, int aformat, int has_video)
     dtv_patch_out *paramout = get_patchout();
 
     if (paramout->state == DTV_PATCH_STATE_RUNNING) {
-        pthread_mutex_unlock(&patch_out_mutex);
         adec_print("11111111111111");
         return -1;
     }
     adec_print("22222222222222222");
+    pthread_mutex_lock(&patch_out_mutex);
     adec_print("now the audio decoder start  now, aformat %d  has_video %d!\n",
                aformat, has_video);
     memset(&param, 0, sizeof(param));
@@ -317,8 +274,8 @@ int dtv_patch_input_start(unsigned int handle, int aformat, int has_video)
     paramout->state = DTV_PATCH_STATE_RUNNING;
     audio_decode_init((void **)(&(paramout->audec)), &param);
     ret = pthread_create(&(paramout->tid), NULL, &dtv_patch_out_loop, paramout);
-    out_patch_initd = 1;
     pthread_mutex_unlock(&patch_out_mutex);
+    out_patch_initd = 1;
     adec_print("now leave the dtv_patch_input_start function \n ");
 
     return 0;
@@ -331,27 +288,27 @@ int dtv_patch_input_stop(unsigned int handle)
         return -1;
     }
 
-    dtv_patch_out *paramout = get_patchout();
-    pthread_mutex_lock(&patch_out_mutex);
     if (out_patch_initd == 0) {
-        pthread_mutex_unlock(&patch_out_mutex);
         return -1;
     }
 
     adec_print("now enter the audio decoder stop now!\n");
 
+    dtv_patch_out *paramout = get_patchout();
+    pthread_mutex_lock(&patch_out_mutex);
     paramout->state = DTV_PATCH_STATE_STOPED;
-    pthread_join(paramout->tid, NULL);
     adec_print("now enter the audio decoder stop now111111!\n");
     audio_decode_stop(paramout->audec);
     audio_decode_release((void **) & (paramout->audec));
-
-    adec_print("now enter the audio decoder stop now222222!\n");
     paramout->audec = NULL;
-    adec_print("now enter the audio decoder stop now!\n");
+    adec_print("now enter the audio decoder stop now2222222!\n");
+    pthread_mutex_unlock(&patch_out_mutex);
+
+    pthread_join(paramout->tid, NULL);
+    adec_print("now enter the audio decoder stop now333333!\n");
+
     paramout->tid = -1;
     out_patch_initd = 0;
-    pthread_mutex_unlock(&patch_out_mutex);
 
     adec_print("now leave the audio decoder stop now!\n");
     return 0;

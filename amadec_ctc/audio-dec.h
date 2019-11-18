@@ -1,23 +1,13 @@
-/*
- * Copyright (C) 2018 Amlogic Corporation.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- *  DESCRIPTION
- *      brief  Definitiond Of Audio Dec Types And Structures
+/**
+ * \file audio-dec.h
+ * \brief  Definitiond Of Audio Dec Types And Structures
+ * \version 1.0.0
+ * \date 2011-03-08
+ */
+/* Copyright (C) 2007-2011, Amlogic Inc.
+ * All right reserved
  *
  */
-
 #ifndef AUDIO_DEC_H
 #define AUDIO_DEC_H
 
@@ -126,7 +116,7 @@ struct aml_audio_dec {
     int auto_mute;
     int muted;
     int decoded_nb_frames;
-    int error_nb_frames;
+    int raw_enable;
     int avsync_threshold;
     float volume; //left or main volume
     float volume_ext; //right
@@ -169,8 +159,6 @@ struct aml_audio_dec {
 	int64_t decode_pcm_offset;
 	int use_get_out_posion;
     int nDecodeErrCount;
-    int audio_decode_error_count;
-    int error_num;
     int fd_uio;
     uint64_t last_valid_pts;
     int out_len_after_last_valid_pts;
@@ -225,7 +213,6 @@ struct aml_audio_dec {
     buffer_stream_t *g_assoc_bst;
     fp_arm_omx_codex_read_assoc_data parm_omx_codec_read_assoc_data;
     int mixing_level;//def=50, mixing level between main and associate, [0,100]
-    int32_t raw_enable;
 };
 
 //from amcodec
@@ -244,7 +231,6 @@ typedef struct {
     int droppcm_flag;               // drop pcm flag, if switch audio (1)
     int automute;
     unsigned int has_video;
-	int error_num;
     int associate_dec_supported;//support associate or not
     int mixing_level;//def=50, mixing level between main and associate, [0,100]
 } arm_audio_info;
