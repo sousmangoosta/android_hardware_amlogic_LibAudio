@@ -44,7 +44,7 @@
 #ifndef WIN32
 #include <android/log.h>
 #endif
-
+#include <cutils/properties.h>
 //#define min(a,b) ( (a) < (b) ? (a) : (b) )
 
 /* MicroSoft channel definitions */
@@ -79,7 +79,7 @@
 #define  RSYNC_SKIP_BYTES  1
 #define FRAME_RECORD_NUM   40
 #define FRAME_SIZE_MARGIN  300
-
+#define PROPERTY_FILTER_HEAAC "media.filter.heaac"
 enum {
     AAC_ERROR_NO_ENOUGH_DATA = -1,
     AAC_ERROR_NEED_RESET_DECODER = -2,
@@ -100,6 +100,7 @@ typedef struct FaadContext {
     unsigned init_start_flag; //start flag to summary data cost
     int64_t starttime;
     int64_t endtime;
+    bool filter_heaac;
 } FaadContext;
 
 //typedef int (*findsyncfunc)(unsigned char *buf, int nBytes);
@@ -292,6 +293,7 @@ int audio_dec_init(
     gFaadCxt->gSampleRate = adec_ops->samplerate;
     gFaadCxt->init_flag = 0;
     gFaadCxt->header_type = 1; //default adts
+    gFaadCxt->filter_heaac = property_get_bool(PROPERTY_FILTER_HEAAC, false);
     return 0;
 }
 static int audio_decoder_init(
@@ -379,13 +381,14 @@ int audio_dec_decode(
     unsigned long samplerate;
     unsigned char channels;
     void *sample_buffer;
-    NeAACDecFrameInfo frameInfo;
+    NeAACDecFrameInfo frameInfo = {0};
     int outmaxlen = 0;
     char *dec_buf;
     int    dec_bufsize;
     int  inbuf_consumed = 0;
     int ret = 0;
     FaadContext *gFaadCxt = (FaadContext*)adec_ops->pdecoder;
+    NeAACDecStruct* hDecoder  = NULL;
     dec_bufsize = inlen;
     dec_buf = inbuf;
     outmaxlen = *outlen ;
@@ -419,7 +422,7 @@ int audio_dec_decode(
             dec_bufsize = 0;
         }
     }
-    NeAACDecStruct* hDecoder = (NeAACDecStruct*)(gFaadCxt->hDecoder);
+    hDecoder = (NeAACDecStruct*)(gFaadCxt->hDecoder);
     //TODO .fix to LATM aac decoder when ffmpeg parser return LATM aac  type
 #if 0
     if (adec_ops->nAudioDecoderType == ACODEC_FMT_AAC_LATM) {
@@ -506,6 +509,10 @@ exit:
     }
     if (gFaadCxt->init_flag == 0) {
         gFaadCxt->init_cost += (inlen - dec_bufsize);
+    }
+    //disable HE-AAC decoder
+    if (hDecoder && hDecoder->sbr_present_flag == 1 && *outlen > 0 && gFaadCxt->filter_heaac) {
+        memset(outbuf,0,*outlen);
     }
     return inlen - dec_bufsize;
 }

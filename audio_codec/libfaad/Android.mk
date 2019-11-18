@@ -40,6 +40,7 @@ LOCAL_SRC_FILES +=   \
 LOCAL_CFLAGS  += -DUSE_DEFAULT_STDLIB  -DUSE_HELIX_AAC_DECODER
 endif
 
+
 LOCAL_CFLAGS  += -Werror -Wunused-function
 
 LOCAL_ARM_MODE := arm
@@ -90,6 +91,7 @@ LOCAL_SRC_FILES +=   \
     helixaac/trigtabs_fltgen.c
 LOCAL_CFLAGS  += -DUSE_DEFAULT_STDLIB  -DUSE_HELIX_AAC_DECODER
 endif
+
 
 LOCAL_CFLAGS  += -Werror -Wunused-function
 
@@ -149,6 +151,7 @@ LOCAL_SRC_FILES +=   \
     helixaac/trigtabs_fltgen.c
 LOCAL_CFLAGS  += -DUSE_DEFAULT_STDLIB  -DUSE_HELIX_AAC_DECODER
 endif
+
 
 LOCAL_CFLAGS  += -Werror -Wunused-function
 
