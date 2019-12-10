@@ -1481,7 +1481,6 @@ void *audio_decode_loop(void *args)
     int rlen = 0;//read buffer ret size
     char *pRestData = NULL;
     //char *inbuf2;
-    char value[PROPERTY_VALUE_MAX] = {0};
 
     int dlen = 0;//decode size one time
     int declen = 0;//current decoded size
@@ -1493,7 +1492,6 @@ void *audio_decode_loop(void *args)
     int nAudioFormat;
     char *outbuf = pcm_buf_tmp;
     int outlen = 0;
-    int prop_outlen = 0;
     struct package *p_Package;
     buffer_stream_t *g_bst;
     //AudioInfo g_AudioInfo;
@@ -1509,10 +1507,6 @@ void *audio_decode_loop(void *args)
     inlen = 0;
     nNextFrameSize = adec_ops->nInBufSize;
     adec_ops->nAudioDecoderType = audec->format;
-    if (property_get("media.libplayer.max_audio_frame_size", value, NULL) > 0) {
-        prop_outlen = atoi(value);
-        adec_print("prop_outlen=%d\n", prop_outlen);
-    }
     while (1) {
         //exit_decode_loop:
         if (audec->exit_decode_thread) { //detect quit condition
@@ -1560,9 +1554,7 @@ void *audio_decode_loop(void *args)
         declen  = 0;
         if (nCurrentReadCount > 0) {
             while (declen < rlen && !audec->exit_decode_thread) {
-                outlen = 5120;
-                if (prop_outlen > 0)
-                    outlen = prop_outlen;
+                outlen = AVCODEC_MAX_AUDIO_FRAME_SIZE;
                 if (nAudioFormat == ACODEC_FMT_COOK || nAudioFormat == ACODEC_FMT_RAAC || nAudioFormat == ACODEC_FMT_AMR) {
                     if (needdata > 0) {
                         pRestData = malloc(inlen);
