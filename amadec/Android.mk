@@ -65,7 +65,9 @@ LOCAL_C_INCLUDES:= \
 	$(AMAVUTILS_INCLUDE) \
     system/core/base/include \
     frameworks/av/include \
-    system/media/audio/include
+    system/media/audio/include \
+    hardware/amlogic/audio/audio_hal \
+    hardware/amlogic//audio/utils/include/
 
 # PLATFORM_SDK_VERSION:
 # 4.4 = 19
@@ -114,7 +116,9 @@ LOCAL_C_INCLUDES:= \
     $(AMAVUTILS_INCLUDE) \
     frameworks/av/include \
     system/media/audio/include \
-    system/libhidl/transport/token/1.0/utils/include
+    system/libhidl/transport/token/1.0/utils/include \
+    hardware/amlogic/audio/audio_hal \
+    hardware/amlogic/audio/utils/include/
 
 
 LOCAL_CFLAGS += -DANDROID_PLATFORM_SDK_VERSION=$(PLATFORM_SDK_VERSION)
@@ -146,7 +150,7 @@ LOCAL_ARM_MODE := arm
 ##################################################
 #$(shell cp $(LOCAL_PATH)/acodec_lib/*.so $(TARGET_OUT)/lib)
 ###################################################
-LOCAL_SHARED_LIBRARIES += libutils libz libbinder libdl libcutils libc libamavutils liblog
+LOCAL_SHARED_LIBRARIES += libutils libz libbinder libdl libcutils libc libamavutils liblog libdtvad libamaudioutils
 
 LOCAL_PRELINK_MODULE := false
 LOCAL_MODULE_TAGS := optional

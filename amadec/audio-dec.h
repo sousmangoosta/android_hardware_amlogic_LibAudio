@@ -31,6 +31,10 @@
 #include <log-print.h>
 #include <adec-armdec-mgt.h>
 #include <adec_write.h>
+#ifndef USE_AOUT_IN_ADEC
+#include <aml_hw_mixer.h>
+#endif
+
 ADEC_BEGIN_DECLS
 
 #define  AUDIO_CTRL_DEVICE    "/dev/amaudio_ctl"
@@ -220,11 +224,18 @@ struct aml_audio_dec {
     int DTSHDIEC958_PktType;
     int DTSHDPCM_SamsInFrmAtMaxSR;
     unsigned int has_video;
-    int associate_dec_supported;//support associate or not
-    unsigned int associate_audio_enable;//control output associate audio
     buffer_stream_t *g_assoc_bst;
     fp_arm_omx_codex_read_assoc_data parm_omx_codec_read_assoc_data;
+#ifndef USE_AOUT_IN_ADEC
+    audio_decoder_operations_t *ad_adec_ops;
+    pthread_t ad_sn_threadid;
+    pthread_t ad_sn_getpackage_threadid;
+    Package_List ad_pack_list;
+    int associate_dec_supported;//support associate or not
+    unsigned int associate_audio_enable;//control output associate audio
     int mixing_level;//def=50, mixing level between main and associate, [0,100]
+    struct aml_hw_mixer hw_mixer;
+#endif
     int32_t raw_enable;
 };
 
@@ -246,6 +257,7 @@ typedef struct {
     unsigned int has_video;
 	int error_num;
     int associate_dec_supported;//support associate or not
+    int associate_mixing_enable;
     int mixing_level;//def=50, mixing level between main and associate, [0,100]
 } arm_audio_info;
 

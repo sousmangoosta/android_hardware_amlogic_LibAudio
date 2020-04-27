@@ -79,14 +79,6 @@ static unsigned char decode_buffer[OUTPUT_BUFFER_SIZE + 64];
 #define PERIOD_NUM 4
 #define AV_SYNC_THRESHOLD 60
 
-static int _get_asso_enable()
-{
-    return property_get_int32(AUD_ASSO_PROP, 0);
-}
-static int _get_asso_mix()
-{
-    return property_get_int32(AUD_ASSO_MIX_PROP, 50);
-}
 /*
 static int _get_vid_disabled()
 {
@@ -189,7 +181,13 @@ static void *dtv_patch_out_loop(void *args)
 
                 continue;
             }
-
+#ifndef USE_AOUT_IN_ADEC
+                if (audec->associate_dec_supported) {
+                    if (audec->associate_audio_enable) {
+                      audec->mixing_level =  patchparm->buffer_cb(patchparm->pargs, AD_MIXING_LEVLE);
+                    }
+                }
+#endif
             if (patchparm->buffer_cb(patchparm->pargs, BUFFER_SPACE) < 4096) {
                 if (patchparm->state == DTV_PATCH_STATE_STOPED) {
                     goto exit;
@@ -288,7 +286,8 @@ int dtv_patch_input_open(unsigned int *handle, out_pcm_write pcmcb,
     return 0;
 }
 
-int dtv_patch_input_start(unsigned int handle, int aformat, int has_video)
+int dtv_patch_input_start(unsigned int handle, int aformat, int has_video,
+           bool associate_dec_supported,bool associate_audio_mixing_enable,int dual_decoder_mixing_level)
 {
     int ret;
     adec_print("now enter the dtv_patch_input_start function handle %d "
@@ -310,10 +309,9 @@ int dtv_patch_input_start(unsigned int handle, int aformat, int has_video)
 
     if (paramout->state == DTV_PATCH_STATE_RUNNING) {
         pthread_mutex_unlock(&patch_out_mutex);
-        adec_print("11111111111111");
         return -1;
     }
-    adec_print("22222222222222222");
+
     adec_print("now the audio decoder start  now, aformat %d  has_video %d!\n",
                aformat, has_video);
     memset(&param, 0, sizeof(param));
@@ -321,11 +319,20 @@ int dtv_patch_input_start(unsigned int handle, int aformat, int has_video)
     param.format = aformat;
     param.has_video = has_video;
     paramout->audec = NULL;
-    param.associate_dec_supported = _get_asso_enable();
-    param.mixing_level = _get_asso_mix();
+    if (aformat == ACODEC_FMT_MPEG || aformat == ACODEC_FMT_AAC) {
+        param.associate_dec_supported = associate_dec_supported;
+        param.associate_mixing_enable = associate_audio_mixing_enable;
+        param.mixing_level = dual_decoder_mixing_level;
+    } else {
+        param.associate_dec_supported = 0;
+        param.associate_mixing_enable = 0;
+        param.mixing_level = 0;
+    }
+
+    //param.mixing_level = _get_asso_mix();
     paramout->state = DTV_PATCH_STATE_RUNNING;
     audio_decode_init((void **)(&(paramout->audec)), &param);
-    ret = pthread_create(&(paramout->tid), NULL, &dtv_patch_out_loop, paramout);
+    ret = pthread_create(&(paramout->tid), NULL, (void *)dtv_patch_out_loop, paramout);
     out_patch_initd = 1;
     pthread_mutex_unlock(&patch_out_mutex);
     adec_print("now leave the dtv_patch_input_start function \n ");

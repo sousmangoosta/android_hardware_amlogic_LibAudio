@@ -78,6 +78,12 @@ int audio_decode_init(void **handle, arm_audio_info *a_ainfo)
     audec->codec_id = a_ainfo->codec_id;
     audec->auto_mute = a_ainfo->automute;
     audec->has_video = a_ainfo->has_video;
+#ifndef USE_AOUT_IN_ADEC
+    audec->associate_dec_supported = a_ainfo->associate_dec_supported;
+    audec->associate_audio_enable = a_ainfo->associate_mixing_enable;
+    audec->mixing_level = a_ainfo->mixing_level;
+#endif
+
     if (a_ainfo->droppcm_flag) {
         audec->droppcm_flag = a_ainfo->droppcm_flag;
         a_ainfo->droppcm_flag = 0;

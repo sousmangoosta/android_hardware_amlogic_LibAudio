@@ -32,6 +32,11 @@
 #include "Amsysfsutils.h"
 #include "amconfigutils.h"
 
+#ifndef USE_AOUT_IN_ADEC
+#include <audio_dtv_ad.h>
+#include <aml_hw_mixer.h>
+#include <aml_volume_utils.h>
+#endif
 #include <audio-dec.h>
 #include <adec-external-ctrl.h>
 #include <amthreadpool.h>
@@ -41,12 +46,15 @@ extern int read_buffer(unsigned char *buffer, int size);
 void *audio_decode_loop(void *args);
 void *audio_dtsdecode_loop(void *args);
 void *audio_getpackage_loop(void *args);
+void *ad_audio_getpackage_loop(void *args);
+void *ad_audio_decode_loop(void *args);
 static void stop_decode_thread(aml_audio_dec_t *audec);
 #ifndef USE_AOUT_IN_ADEC
 static int set_sysfs_int(const char *path, int val);
 #define DTV_APTS_LOOKUP_PATH "/sys/class/tsync/apts_lookup"
 #endif
 #define AVCODEC_MAX_AUDIO_FRAME_SIZE 500*1024
+#define AD_MIXER_BUF_SIZE  256 * 1024
 
 /*audio decoder list structure*/
 typedef struct {
@@ -139,6 +147,9 @@ int find_audio_lib(aml_audio_dec_t *audec)
     adec_print("[%s %d]audec->format/%d audec->codec_id/0x%x\n", __FUNCTION__, __LINE__, audec->format, audec->codec_id);
     num = ARRAY_SIZE(audio_lib_list);
     audio_decoder_operations_t *adec_ops = audec->adec_ops;
+#ifndef USE_AOUT_IN_ADEC
+    audio_decoder_operations_t *ad_adec_ops = audec->ad_adec_ops;
+#endif
     //-------------------------
     if (find_omx_lib(audec)) {
         return 0;
@@ -153,6 +164,13 @@ int find_audio_lib(aml_audio_dec_t *audec)
                 adec_ops->decode  = dlsym(fd, "audio_dec_decode");
                 adec_ops->release = dlsym(fd, "audio_dec_release");
                 adec_ops->getinfo = dlsym(fd, "audio_dec_getinfo");
+
+#ifndef USE_AOUT_IN_ADEC
+                ad_adec_ops->init    = dlsym(fd, "audio_dec_init");
+                ad_adec_ops->decode  = dlsym(fd, "audio_dec_decode");
+                ad_adec_ops->release = dlsym(fd, "audio_dec_release");
+                ad_adec_ops->getinfo = dlsym(fd, "audio_dec_getinfo");
+#endif
             } else {
                 adec_print("cant find decoder lib\n");
                 return -1;
@@ -184,6 +202,31 @@ static audio_decoder_operations_t AudioArmDecoder = {
     0,
     0,
 };
+#ifndef USE_AOUT_IN_ADEC
+
+static audio_decoder_operations_t ad_AudioArmDecoder = {
+    "ad_FFmpegDecoder",
+    AUDIO_ARM_DECODER,
+    0,
+    0,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    0,
+    0,
+    0,
+    0,
+    0,
+    { 0 },
+    0,
+    0,
+};
+#endif
+
 #ifdef USE_AOUT_IN_ADEC
 static int FFmpegDecoderInit(audio_decoder_operations_t *adec_ops __unused)
 {
@@ -283,6 +326,77 @@ struct package * package_get(aml_audio_dec_t * audec)
     lp_unlock(&(audec->pack_list.tslock));
     return p;
 }
+#ifndef USE_AOUT_IN_ADEC
+int ad_package_list_free(aml_audio_dec_t * audec)
+{
+    lp_lock(&(audec->ad_pack_list.tslock));
+    while (audec->ad_pack_list.pack_num) {
+        struct package * p = audec->ad_pack_list.first;
+        audec->ad_pack_list.first = audec->ad_pack_list.first->next;
+        free(p->data);
+        free(p);
+        audec->ad_pack_list.pack_num--;
+    }
+    lp_unlock(&(audec->ad_pack_list.tslock));
+    return 0;
+}
+
+int ad_package_list_init(aml_audio_dec_t * audec)
+{
+    audec->ad_pack_list.first = NULL;
+    audec->ad_pack_list.pack_num = 0;
+    audec->ad_pack_list.current = NULL;
+    lp_lock_init(&(audec->ad_pack_list.tslock), NULL);
+    return 0;
+}
+
+int ad_package_add(aml_audio_dec_t * audec, char * data, int size)
+{
+    lp_lock(&(audec->ad_pack_list.tslock));
+    if (audec->ad_pack_list.pack_num == 8) { //enough
+        lp_unlock(&(audec->ad_pack_list.tslock));
+        return -2;
+    }
+    struct package *p = malloc(sizeof(struct package));
+    if (!p) { //malloc failed
+        lp_unlock(&(audec->ad_pack_list.tslock));
+        return -1;
+    }
+    p->data = data;
+    p->size = size;
+    if (audec->ad_pack_list.pack_num == 0) { //first package
+        audec->ad_pack_list.first = p;
+        audec->ad_pack_list.current = p;
+        audec->ad_pack_list.pack_num = 1;
+    } else {
+        audec->ad_pack_list.current->next = p;
+        audec->ad_pack_list.current = p;
+        audec->ad_pack_list.pack_num++;
+    }
+    lp_unlock(&(audec->ad_pack_list.tslock));
+    return 0;
+}
+
+struct package * ad_package_get(aml_audio_dec_t * audec)
+{
+    lp_lock(&(audec->ad_pack_list.tslock));
+    if (audec->ad_pack_list.pack_num == 0) {
+        lp_unlock(&(audec->ad_pack_list.tslock));
+        return NULL;
+    }
+    struct package *p = audec->ad_pack_list.first;
+    if (audec->ad_pack_list.pack_num == 1) {
+        audec->ad_pack_list.first = NULL;
+        audec->ad_pack_list.pack_num = 0;
+        audec->ad_pack_list.current = NULL;
+    } else if (audec->ad_pack_list.pack_num > 1) {
+        audec->ad_pack_list.first = audec->ad_pack_list.first->next;
+        audec->ad_pack_list.pack_num--;
+    }
+    lp_unlock(&(audec->ad_pack_list.tslock));
+    return p;
+}
+#endif
 
 
 int armdec_stream_read(dsp_operations_t *dsp_ops, char *buffer, int size)
@@ -667,6 +781,10 @@ int RegisterDecode(aml_audio_dec_t *audec)
 {
     memset(&AudioArmDecoder, 0, sizeof(audio_decoder_operations_t));
     audec->adec_ops = &AudioArmDecoder;
+#ifndef USE_AOUT_IN_ADEC
+    memset(&ad_AudioArmDecoder, 0, sizeof(audio_decoder_operations_t));
+    audec->ad_adec_ops = &ad_AudioArmDecoder;
+#endif
     find_audio_lib(audec);
     audec->adec_ops->priv_data = audec;
 
@@ -818,6 +936,11 @@ static int audio_codec_init(aml_audio_dec_t *audec)
     audec->use_get_out_posion = am_getconfig_bool_def("media.audio.pts.use_get_posion", 0);
     package_list_init(audec);
 #ifndef USE_AOUT_IN_ADEC
+    ad_package_list_init(audec);
+    audec->ad_sn_threadid = -1;
+    audec->ad_sn_getpackage_threadid = -1;
+    audec->hw_mixer.buf_size = AD_MIXER_BUF_SIZE;
+    aml_hw_mixer_init(&audec->hw_mixer);
     while (0 != set_sysfs_int(DECODE_ERR_PATH, DECODE_NONE_ERR)) {
         adec_print("[%s %d]set codec fatal failed ! \n", __FUNCTION__, __LINE__);
         amthreadpool_thread_usleep(100000);
@@ -870,6 +993,11 @@ static int audio_codec_init(aml_audio_dec_t *audec)
 
     int ret = 0;
     if (!audec->StageFrightCodecEnableType) { //1-decoder init
+#ifndef USE_AOUT_IN_ADEC
+        if (audec->ad_adec_ops->init != NULL) {
+            ret = audec->ad_adec_ops->init(audec->ad_adec_ops);
+        }
+#endif
         if (audec->adec_ops->init != NULL) {
             ret = audec->adec_ops->init(audec->adec_ops);
         }
@@ -917,15 +1045,26 @@ static int audio_codec_init(aml_audio_dec_t *audec)
 
 err1:
     audec->adec_ops->release(audec->adec_ops);
+#ifndef USE_AOUT_IN_ADEC
+    audec->ad_adec_ops->release(audec->ad_adec_ops);
+#endif
     return -1;
 err2:
     audec->adec_ops->release(audec->adec_ops);
+#ifndef USE_AOUT_IN_ADEC
+    audec->ad_adec_ops->release(audec->ad_adec_ops);
+#endif
     OutBufferRelease(audec);
     return -1;
 err3:
     if (audec->adec_ops->release != NULL) {
         audec->adec_ops->release(audec->adec_ops);
     }
+#ifndef USE_AOUT_IN_ADEC
+    if (audec->ad_adec_ops->release != NULL) {
+        audec->ad_adec_ops->release(audec->ad_adec_ops);
+    }
+#endif
     OutBufferRelease(audec);
     InBufferRelease(audec);
     OutBufferRelease_raw(audec);
@@ -939,6 +1078,13 @@ int audio_codec_release(aml_audio_dec_t *audec)
         if (audec->adec_ops->release != NULL) {
             audec->adec_ops->release(audec->adec_ops);    //2-decoder release
         }
+#ifndef USE_AOUT_IN_ADEC
+        if (audec->ad_adec_ops->release != NULL) {
+            audec->ad_adec_ops->release(audec->ad_adec_ops);    //2-decoder release
+        }
+        aml_hw_mixer_deinit(&audec->hw_mixer);
+#endif
+
     } else {
         stop_decode_thread_omx(audec);
     }
@@ -1233,10 +1379,24 @@ static void start_decode_thread(aml_audio_dec_t *audec)
     }
 
     pthread_t    tid;
-    int ret = amthreadpool_pthread_create_name(&tid, NULL, (void *)audio_getpackage_loop, (void *)audec, "getpackagelp");
+    int ret;
+#ifndef USE_AOUT_IN_ADEC
+    if (audec->associate_dec_supported) {
+        ret = amthreadpool_pthread_create_name(&tid, NULL, (void *)ad_audio_getpackage_loop, (void *)audec, "getadpackagelp");
+        audec->ad_sn_getpackage_threadid = tid;
+        adec_print("[%s]Create get ad package thread success! tid = %ld\n", __FUNCTION__, tid);
+
+        ret = amthreadpool_pthread_create_name(&tid, NULL, (void *)ad_audio_decode_loop, (void *)audec, "ad_decodeloop");
+        if (ret != 0) {
+            adec_print("[%s]Create ffmpeg decode thread failed!\n", __FUNCTION__);
+            return;
+        }
+        audec->ad_sn_threadid = tid;
+    }
+#endif
+    ret = amthreadpool_pthread_create_name(&tid, NULL, (void *)audio_getpackage_loop, (void *)audec, "getpackagelp");
     audec->sn_getpackage_threadid = tid;
     adec_print("[%s]Create get package thread success! tid = %ld\n", __FUNCTION__, tid);
-
     ret = amthreadpool_pthread_create_name(&tid, NULL, (void *)audio_decode_loop, (void *)audec, "decodeloop");
     if (ret != 0) {
         adec_print("[%s]Create ffmpeg decode thread failed!\n", __FUNCTION__);
@@ -1265,6 +1425,17 @@ static void stop_decode_thread(aml_audio_dec_t *audec)
 
     audec->sn_threadid = -1;
     audec->sn_getpackage_threadid = -1;
+#ifndef USE_AOUT_IN_ADEC
+    if (audec->associate_dec_supported) {
+        ret = amthreadpool_pthread_join(audec->ad_sn_threadid, NULL);
+        adec_print("[%s]ad decode thread exit success\n", __FUNCTION__);
+        ret = amthreadpool_pthread_join(audec->ad_sn_getpackage_threadid, NULL);
+        adec_print("[%s]ad get package thread exit success\n", __FUNCTION__);
+        audec->ad_sn_threadid = -1;
+        audec->ad_sn_getpackage_threadid = -1;
+    }
+#endif
+
 }
 
 /* --------------------------------------------------------------------------*/
@@ -1470,6 +1641,274 @@ void *audio_getpackage_loop(void *args)
     pthread_exit(NULL);
     return NULL;
 }
+static void dump_amadec_data(void *buffer, int size, char *file_name)
+{
+   if (property_get_bool("vendor.media.amadec.outdump",false)) {
+        FILE *fp1 = fopen(file_name, "a+");
+        if (fp1) {
+            int flen = fwrite((char *)buffer, 1, size, fp1);
+            adec_print("%s buffer %p size %d flen %d\n", __FUNCTION__, buffer, size,flen);
+            fclose(fp1);
+        }
+    }
+}
+
+#ifndef USE_AOUT_IN_ADEC
+void *ad_audio_getpackage_loop(void *args)
+{
+    int ret;
+    aml_audio_dec_t *audec;
+    audio_decoder_operations_t *ad_adec_ops;
+    int nNextFrameSize = 0; //next read frame size
+    int inlen = 0;//real data size in in_buf
+    int nInBufferSize = 0; //full buffer size
+    char *inbuf = NULL;//real buffer
+    int rlen = 0;//read buffer ret size
+    int nAudioFormat;
+    unsigned wfd = 0;
+    if (am_getconfig_bool("vendor.media.libplayer.wfd"))  {
+        wfd = 1;
+    }
+
+    adec_print("[%s]ad_adec_getadpackage_loop start!\n", __FUNCTION__);
+    audec = (aml_audio_dec_t *)args;
+    ad_adec_ops = audec->ad_adec_ops;
+    nAudioFormat = audec->format;
+    inlen = 0;
+    dtv_assoc_audio_cache(2);
+    nNextFrameSize = ad_adec_ops->nInBufSize;
+    while (1) {
+        //exit_decode_loop:
+        if (audec->exit_decode_thread) { /*detect quit condition*/
+            if (inbuf) {
+                free(inbuf);
+            }
+            ad_package_list_free(audec);
+            break;
+        }
+
+        nNextFrameSize = get_frame_size(audec); /*step 2  get read buffer size*/
+        if (nNextFrameSize == -1) {
+            //nNextFrameSize = ad_adec_ops->nInBufSize;
+            //if (audec->format == ACODEC_FMT_AC3 || audec->format == ACODEC_FMT_EAC3 || audec->format == ACODEC_FMT_DTS) {
+                nNextFrameSize = 512;
+            //}
+        } else if (nNextFrameSize == 0) {
+            amthreadpool_thread_usleep(1000);
+            continue;
+        }
+
+        nInBufferSize = nNextFrameSize;/*step 3  read buffer*/
+        if (inbuf != NULL) {
+            free(inbuf);
+            inbuf = NULL;
+        }
+        inbuf = malloc(nInBufferSize);
+
+        int nNextReadSize = nInBufferSize;
+        int nRet = 0;
+        //int nReadErrCount = 0;
+        int nCurrentReadCount = 0;
+        int nReadSizePerTime = 1024;
+        rlen = 0;
+        int sleeptime = 0;
+        while (nNextReadSize > 0 && !audec->exit_decode_thread) {
+            if (nNextReadSize <= nReadSizePerTime) {
+                nReadSizePerTime = nNextReadSize;
+            }
+            nRet = dtv_assoc_read((unsigned char *)(inbuf + rlen), nReadSizePerTime); //read 10K per time
+            if (nRet <= 0) {
+                sleeptime++;
+                amthreadpool_thread_usleep(1000);
+                continue;
+            }
+            rlen += nRet;
+            nNextReadSize -= nRet;
+            if (wfd && nAudioFormat == ACODEC_FMT_AAC) {
+                if (rlen > 300) {
+                    break;
+                }
+            }
+        }
+
+        sleeptime = 0;
+        nCurrentReadCount = rlen;
+        rlen += inlen;
+        ret = -1;
+        while ((ret = ad_package_add(audec, inbuf, rlen)) && !audec->exit_decode_thread) {
+            amthreadpool_thread_usleep(1000);
+        }
+        if (ret) {
+            free(inbuf);
+        }
+        inbuf = NULL;
+    }
+    //QUIT:
+    adec_print("[%s]Exit ad adec_getpackage_loop Thread finished!", __FUNCTION__);
+    pthread_exit(NULL);
+    return NULL;
+}
+
+static char ad_pcm_buf_tmp[AVCODEC_MAX_AUDIO_FRAME_SIZE];//max frame size out buf
+void *ad_audio_decode_loop(void *args)
+{
+    aml_audio_dec_t *audec;
+    audio_decoder_operations_t *ad_adec_ops;
+    int inlen = 0;//real data size in in_buf
+    char *inbuf = NULL;//real buffer
+    int rlen = 0;//read buffer ret size
+    char *pRestData = NULL;
+    int dlen = 0;//decode size one time
+    int declen = 0;//current decoded size
+    int nCurrentReadCount = 0;
+    int needdata = 0;
+    int nAudioFormat;
+    char *outbuf = ad_pcm_buf_tmp;
+    int outlen = AVCODEC_MAX_AUDIO_FRAME_SIZE;
+    struct package *p_Package = NULL;
+
+    //AudioInfo g_AudioInfo;
+    adec_print("[%s]ad_adec_armdec_loop start!\n", __FUNCTION__);
+    audec = (aml_audio_dec_t *)args;
+    ad_adec_ops = audec->ad_adec_ops;
+    memset(outbuf, 0, AVCODEC_MAX_AUDIO_FRAME_SIZE);
+    nAudioFormat = audec->format;
+    inlen = 0;
+    ad_adec_ops->nAudioDecoderType = audec->format;
+    AudioInfo   g_AudioInfo = {0, 0, 0, 0, 0};
+    while (1) {
+        //exit_decode_loop:
+        if (audec->exit_decode_thread) { //detect quit condition
+            if (inbuf) {
+                free(inbuf);
+                inbuf = NULL;
+            }
+            if (pRestData) {
+                free(pRestData);
+                pRestData = NULL;
+            }
+            audec->exit_decode_thread_success = 1;
+            break;
+        }
+        //step 2  get read buffer size
+        p_Package = ad_package_get(audec);
+        if (!p_Package) {
+            amthreadpool_thread_usleep(1000);
+            continue;
+        }
+        dump_amadec_data(p_Package->data,p_Package->size,"/data/audio/adec_ad.es");
+        if (inbuf != NULL) {
+            free(inbuf);
+            inbuf = NULL;
+        }
+
+        if (inlen && pRestData) {
+            rlen = p_Package->size + inlen;
+            inbuf = malloc(rlen);
+            memcpy(inbuf, pRestData, inlen);
+            memcpy(inbuf + inlen, p_Package->data, p_Package->size);
+            free(pRestData);
+            free(p_Package->data);
+            pRestData = NULL;
+            p_Package->data = NULL;
+        } else {
+            rlen = p_Package->size;
+            inbuf = p_Package->data;
+            p_Package->data = NULL;
+        }
+        free(p_Package);
+        p_Package = NULL;
+
+        nCurrentReadCount = rlen;
+        inlen = rlen;
+        declen  = 0;
+        if (nCurrentReadCount > 0) {
+            while (declen < rlen && !audec->exit_decode_thread) {
+                outlen = AVCODEC_MAX_AUDIO_FRAME_SIZE;
+                if (nAudioFormat == ACODEC_FMT_COOK || nAudioFormat == ACODEC_FMT_RAAC || nAudioFormat == ACODEC_FMT_AMR) {
+                    if (needdata > 0) {
+                        pRestData = malloc(inlen);
+                        if (pRestData) {
+                            memcpy(pRestData, (uint8_t *)(inbuf + declen), inlen);
+                        }
+                        needdata = 0;
+                        break;
+                    }
+                }
+                dlen = ad_adec_ops->decode(audec->ad_adec_ops, outbuf, &outlen, inbuf + declen, inlen);
+                if (outlen > AVCODEC_MAX_AUDIO_FRAME_SIZE) {
+                    adec_print("!!!!!fatal error,out buffer overwriten,out len %d,actual %d", outlen, AVCODEC_MAX_AUDIO_FRAME_SIZE);
+                }
+                if (dlen <= 0) {
+                    if (nAudioFormat == ACODEC_FMT_APE) {
+                        inlen = 0;
+                    } else if (inlen > 0) {
+                        pRestData = malloc(inlen);
+                        if (pRestData) {
+                            memcpy(pRestData, (uint8_t *)(inbuf + declen), inlen);
+                        }
+                    }
+                    needdata = 0;
+                    break;
+                }
+                declen += dlen;
+                inlen -= dlen;
+
+                /* decoder input buffer not enough,need new data burst */
+                if (nAudioFormat == ACODEC_FMT_COOK || nAudioFormat == ACODEC_FMT_RAAC || nAudioFormat == ACODEC_FMT_AMR) {
+                    if (inlen <= declen) {
+                        needdata ++;
+                    }
+                }
+                // for aac decoder, if decoder cost es data but no pcm output,may need more data ,which is needed by frame resync
+                else if (nAudioFormat == ACODEC_FMT_AAC_LATM || nAudioFormat == ACODEC_FMT_AAC) {
+                    if (outlen == 0 && inlen) {
+                        pRestData = malloc(inlen);
+                        if (pRestData) {
+                            memcpy(pRestData, (uint8_t *)(inbuf + declen), inlen);
+                        }
+                        break;
+                    }
+                }
+
+                if (outlen) {
+                    dump_amadec_data(outbuf,outlen,"/data/audio/adec_ad.pcm");
+                    ad_adec_ops->getinfo(audec->ad_adec_ops, &g_AudioInfo);
+                    float mixing_coefficient = (float)(audec->mixing_level  + 32 ) / 64;
+                    apply_volume(mixing_coefficient, outbuf, sizeof(uint16_t), outlen);
+                    if (g_AudioInfo.channels == 1 && audec->channels == 2) {
+                        int16_t *buf = (int16_t *)outbuf;
+                        int i = 0, samples_num,samples;
+                        samples_num = outlen / sizeof(int16_t);
+                        for (; i < samples_num; i++) {
+                            samples = buf[samples_num - i - 1] ;
+                            if (g_AudioInfo.channels == 1 && audec->channels == 2) {
+                                buf[2 * (samples_num - i) - 1] = samples;
+                                buf[2 * (samples_num - i) - 2] = samples;
+                            }
+                        }
+                        outlen *= 2;
+
+                    }
+                    aml_hw_mixer_write(&audec->hw_mixer, outbuf, outlen);
+                    //amthreadpool_thread_usleep(outlen * 1000000 / 4 / g_AudioInfo.samplerate / 2);
+                    //adec_print("aml_hw_mixer_write outlen %d",outlen);
+                }
+            }
+        } else {
+            amthreadpool_thread_usleep(1000);
+            continue;
+        }
+    }
+
+    adec_print("[%s]exit ad_adec_armdec_loop Thread finished!", __FUNCTION__);
+    pthread_exit(NULL);
+    //error:
+    //pthread_exit(NULL);
+    return NULL;
+}
+
+#endif
 
 static char pcm_buf_tmp[AVCODEC_MAX_AUDIO_FRAME_SIZE];//max frame size out buf
 void *audio_decode_loop(void *args)
@@ -1497,8 +1936,9 @@ void *audio_decode_loop(void *args)
     //int nCodecID;
     int nAudioFormat;
     char *outbuf = pcm_buf_tmp;
-    int outlen = 0;
-    struct package *p_Package;
+    int outlen = AVCODEC_MAX_AUDIO_FRAME_SIZE;
+    struct package *p_Package = NULL;
+
     buffer_stream_t *g_bst;
     //AudioInfo g_AudioInfo;
     adec_print("[%s]adec_armdec_loop start!\n", __FUNCTION__);
@@ -1513,6 +1953,23 @@ void *audio_decode_loop(void *args)
     inlen = 0;
     nNextFrameSize = adec_ops->nInBufSize;
     adec_ops->nAudioDecoderType = audec->format;
+
+#ifndef USE_AOUT_IN_ADEC
+    int ad_bufferms = 0;
+    if (audec->associate_dec_supported) {
+        if (audec->associate_audio_enable) {
+            char value[PROPERTY_VALUE_MAX] = {0};
+            if (property_get("vendor.media.ad.bufferms", value, NULL) > 0) {
+               ad_bufferms = atoi(value);
+           }
+            while (aml_hw_mixer_get_content_l(&audec->hw_mixer) < (ad_bufferms * 48 * 4) && !audec->exit_decode_thread) {
+                 adec_print("ad buf %d ",aml_hw_mixer_get_content_l(&audec->hw_mixer));
+                 amthreadpool_thread_usleep(10000);
+            }
+        }
+    }
+#endif
+
     while (1) {
         //exit_decode_loop:
         if (audec->exit_decode_thread) { //detect quit condition
@@ -1537,7 +1994,7 @@ void *audio_decode_loop(void *args)
             free(inbuf);
             inbuf = NULL;
         }
-
+        dump_amadec_data(p_Package->data,p_Package->size,"/data/audio/amadec_abuf_read.es");
         if (inlen && pRestData) {
             rlen = p_Package->size + inlen;
             inbuf = malloc(rlen);
@@ -1583,6 +2040,16 @@ void *audio_decode_loop(void *args)
                     if (nAudioFormat != ACODEC_FMT_AC3 && nAudioFormat != ACODEC_FMT_EAC3 && nAudioFormat != ACODEC_FMT_DTS) {
                         check_audio_info_changed(audec);
                     }
+#ifndef USE_AOUT_IN_ADEC
+                if (audec->associate_dec_supported) {
+                    if (audec->associate_audio_enable) {
+                        //adec_print("aml_hw_mixer_mixing outlen %d",outlen);
+                        float mixing_coefficient = 1.0f - (float)(audec->mixing_level  + 32 ) / 64;
+                        apply_volume(mixing_coefficient, outbuf, sizeof(uint16_t), outlen);
+                        aml_hw_mixer_mixing(&audec->hw_mixer, outbuf, outlen, AUDIO_FORMAT_PCM_16_BIT);
+                    }
+                }
+#endif
                 }
                 if (outlen > AVCODEC_MAX_AUDIO_FRAME_SIZE) {
                     adec_print("!!!!!fatal error,out buffer overwriten,out len %d,actual %d", outlen, AVCODEC_MAX_AUDIO_FRAME_SIZE);

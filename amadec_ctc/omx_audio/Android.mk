@@ -16,7 +16,8 @@ LOCAL_C_INCLUDES:= \
     hardware/amlogic/media/ammediaext \
     hardware/amlogic/LibAudio/amadec  \
     hardware/amlogic/LibAudio/amadec/include \
-    hardware/amlogic/media/amavutils/include
+    hardware/amlogic/media/amavutils/include \
+    hardware/amlogic//audio/utils/include/
 
 LOCAL_SRC_FILES := \
            adec_omx.cpp \
