@@ -1007,7 +1007,7 @@ NEXT_CHECK:
         if (pbuffer_size < (LOAS_HEADER_SIZE + i_frame_size)) {
             LATM_LOG("[%s %d]buffer size  %d small then frame size %d,\n", __FUNCTION__,__LINE__,pbuffer_size, i_frame_size+LOAS_HEADER_SIZE);
             *skipbytes = buffer_size-pbuffer_size;
-            goto exit_check;
+            return -1;
         }
 #if 1
         if (pbuffer[LOAS_HEADER_SIZE + i_frame_size] != 0x56 || (pbuffer[LOAS_HEADER_SIZE + i_frame_size + 1] & 0xe0) != 0xe0) { // next frame LOAS sync header detected
