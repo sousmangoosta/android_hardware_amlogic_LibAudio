@@ -12,7 +12,6 @@ LOCAL_C_INCLUDES:= \
     frameworks/native/include/media/openmax \
     frameworks/av/include/media/stagefright \
     frameworks/native/include/utils \
-    frameworks/av/media/libmediaextractor/include/media \
     hardware/amlogic/media/ammediaext \
     hardware/amlogic/LibAudio/amadec  \
     hardware/amlogic/LibAudio/amadec/include \
@@ -35,7 +34,7 @@ LOCAL_MODULE_TAGS := optional
 LOCAL_ARM_MODE := arm
 
 LOCAL_SHARED_LIBRARIES += libutils libmedia libz libbinder libdl libcutils libc libstagefright \
-                          libmediaextractor libstagefright_omx  liblog libamavutils libstagefright_foundation  libaudioclient
+                          libstagefright_omx  liblog libamavutils libstagefright_foundation  libaudioclient
 LOCAL_PRELINK_MODULE := false
 LOCAL_MODULE_TAGS := optional
 
