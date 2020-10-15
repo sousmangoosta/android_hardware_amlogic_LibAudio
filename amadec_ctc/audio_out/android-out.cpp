@@ -90,7 +90,7 @@ void restore_system_samplerate(struct aml_audio_dec* audec)
         memset(str, 0, sizeof(str));
         sprintf(str, "sampling_rate=%d", default_sr);
         AudioSystem::setParameters(handle, String8(str));
-#if ANDROID_PLATFORM_SDK_VERSION >= 22
+#if ANDROID_PLATFORM_SDK_VERSION >= 22 && ANDROID_PLATFORM_SDK_VERSION < 29
         AudioSystem::releaseOutput(handle, AUDIO_STREAM_DEFAULT, AUDIO_SESSION_OUTPUT_STAGE);
 #else
         AudioSystem::releaseOutput(handle);
@@ -233,7 +233,7 @@ void reset_system_samplerate(struct aml_audio_dec* audec)
                 memset(str, 0, sizeof(str));
                 sprintf(str, "sampling_rate=%d", Samplerate);
                 AudioSystem::setParameters(handle, String8(str));
-#if ANDROID_PLATFORM_SDK_VERSION >= 22
+#if ANDROID_PLATFORM_SDK_VERSION >= 22 && ANDROID_PLATFORM_SDK_VERSION < 29
                 AudioSystem::releaseOutput(handle, AUDIO_STREAM_DEFAULT, AUDIO_SESSION_OUTPUT_STAGE);
 #else
                 AudioSystem::releaseOutput(handle);
