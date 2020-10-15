@@ -105,20 +105,20 @@ AmlOMXCodec::AmlOMXCodec(int codec_type, void *read_buffer, int *exit, aml_audio
         audio_format_t aformat = AUDIO_FORMAT_INVALID;
         if (audec->format == ACODEC_FMT_AC3) {
             aformat = AUDIO_FORMAT_AC3;
-            if (AudioSystem::isPassthroughSupported(aformat)) {
+            /*if (AudioSystem::isPassthroughSupported(aformat)) {
                 audec->raw_enable = 2;
-            } else {
+            } else {*/
                 audec->raw_enable = 0;
-            }
+            //}
         } else if (audec->format == ACODEC_FMT_EAC3) {
             aformat = AUDIO_FORMAT_E_AC3;
-            if (AudioSystem::isPassthroughSupported(aformat)) {
+            /*if (AudioSystem::isPassthroughSupported(aformat)) {
                 audec->raw_enable = 2;
             } else if (AudioSystem::isPassthroughSupported(AUDIO_FORMAT_AC3)) {
                 audec->raw_enable = 1;
-            } else {
+            } else {*/
                 audec->raw_enable = 0;
-            }
+            //}
         } else {
             audec->raw_enable = 0;
         }
@@ -126,7 +126,7 @@ AmlOMXCodec::AmlOMXCodec(int codec_type, void *read_buffer, int *exit, aml_audio
         sp<MetaData> metadata = m_OMXMediaSource->getFormat();
         metadata->setCString(kKeyMIMEType, mine_type);
         //add 3 to distinguish amadec and mediacodec call
-        metadata->setInt32(kKeyIsPtenable, audec->raw_enable + 3);
+        //metadata->setInt32(kKeyIsPtenable, audec->raw_enable + 3);
 
         m_codec = SimpleDecodingSource::Create(
                       m_OMXMediaSource/*,
