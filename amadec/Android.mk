@@ -171,6 +171,8 @@ LOCAL_C_INCLUDES:= \
     $(LOCAL_PATH)/include \
     $(AMAVUTILS_INCLUDE) \
     frameworks/av/include \
+    frameworks/av/media/libmediametrics/include \
+    frameworks/av/media/libmedia/include \
     system/media/audio/include \
     system/libhidl/transport/token/1.0/utils/include
 
