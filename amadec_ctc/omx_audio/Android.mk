@@ -10,7 +10,8 @@ LOCAL_CFLAGS += -DANDROID_PLATFORM_SDK_VERSION=$(PLATFORM_SDK_VERSION)
 LOCAL_C_INCLUDES:= \
     $(LOCAL_PATH)/include \
     frameworks/native/include/media/openmax \
-    frameworks/av/include/media/stagefright \
+    frameworks/av/include/media \
+    frameworks/av/media/libstagefright/include/media/stagefright \
     frameworks/native/include/utils \
     hardware/amlogic/media/ammediaext \
     hardware/amlogic/LibAudio/amadec  \
